@@ -135,4 +135,4 @@ if botao_cliente and (prompt or arquivo_enviado):
             st.balloons()
 
 elif (botao_tecnico or botao_cliente):
-    st.error("Atenção: Digite o veículo/sintoma ou peça o esquema elétrico no campo de texto antes
+    st.error("Por favor, digite um relato ou insira uma mídia antes de processar.")
