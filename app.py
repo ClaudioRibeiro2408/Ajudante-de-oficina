@@ -1,20 +1,87 @@
 import streamlit as st
+import json
+import os
+import pandas as pd
 import requests
 
-st.title("Teste de Conexão IA")
+# Configuração da Página
+st.set_page_config(page_title="Oficina Pro - Gestão & IA", layout="wide")
 
-api_key = st.secrets.get("GEMINI_API_KEY")
+# --- FUNÇÕES DE APOIO ---
+def carregar_json(arquivo):
+    if os.path.exists(arquivo):
+        with open(arquivo, "r", encoding="utf-8") as f:
+            try: return json.load(f)
+            except: return []
+    return []
 
-if st.button("Testar Conexão com Google"):
-    # Vamos tentar listar os modelos disponíveis para ver o que a sua chave enxerga
-    url = f"https://generativelanguage.googleapis.com/v1/models?key={api_key}"
+def salvar_json(arquivo, dados):
+    with open(arquivo, "w", encoding="utf-8") as f:
+        json.dump(dados, f, ensure_ascii=False, indent=4)
+
+def chamar_gemini(prompt):
+    api_key = st.secrets.get("GEMINI_API_KEY")
+    if not api_key:
+        return "Erro: Chave API não configurada."
+    
+    # URL CORRETA baseada na sua lista de modelos disponíveis
+    url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash:generateContent?key={api_key}"
+    
+    payload = {"contents": [{"parts": [{"text": prompt}]}]}
+    
     try:
-        response = requests.get(url)
+        response = requests.post(url, json=payload)
         if response.status_code == 200:
-            modelos = response.json()
-            st.success("Conexão OK! Modelos encontrados:")
-            st.write(modelos)
+            return response.json()['candidates'][0]['content']['parts'][0]['text']
         else:
-            st.error(f"Erro {response.status_code}: {response.text}")
+            return f"Erro na API ({response.status_code}): {response.text}"
     except Exception as e:
-        st.error(f"Erro de rede: {e}")
+        return f"Erro de conexão: {str(e)}"
+
+# --- INTERFACE ---
+st.title("⚙️ Oficina Pro | Gestão e Diagnóstico IA")
+
+aba1, aba2, aba3, aba4 = st.tabs(["👤 Clientes", "📦 Estoque", "🔧 Diagnóstico Técnico", "📋 Histórico"])
+
+with aba1:
+    st.header("Cadastro de Clientes")
+    with st.form("form_cli"):
+        nome = st.text_input("Nome do Cliente")
+        placa = st.text_input("Placa do Veículo")
+        if st.form_submit_button("Salvar Cliente"):
+            dados = carregar_json("clientes.json")
+            dados.append({"Nome": nome, "Placa": placa})
+            salvar_json("clientes.json", dados)
+            st.success("Salvo!")
+    st.table(pd.DataFrame(carregar_json("clientes.json")))
+
+with aba2:
+    st.header("Almoxarifado")
+    with st.form("form_estoque"):
+        item = st.text_input("Nome da Peça")
+        preco = st.number_input("Preço R$", value=0.0)
+        if st.form_submit_button("Salvar Peça"):
+            dados = carregar_json("estoque.json")
+            dados.append({"Peça": item, "Preço": preco})
+            salvar_json("estoque.json", dados)
+            st.rerun()
+    st.table(pd.DataFrame(carregar_json("estoque.json")))
+
+with aba3:
+    st.header("🔧 Diagnóstico Técnico Inteligente")
+    veiculo = st.text_input("Veículo/Modelo")
+    problema = st.text_area("Descreva o sintoma ou falha")
+    
+    if st.button("Buscar Diagnóstico IA"):
+        if veiculo and problema:
+            with st.spinner("Analisando com Gemini 3.5..."):
+                prompt = f"O mecânico está diagnosticando um {veiculo}. O problema é: {problema}. Liste 3 causas prováveis e testes técnicos."
+                resultado = chamar_gemini(prompt)
+                st.markdown("### 💡 Resultado da Análise:")
+                st.write(resultado)
+        else:
+            st.error("Preencha veículo e problema.")
+
+with aba4:
+    st.header("📋 Histórico Geral")
+    st.info("Sistema ativo.")
