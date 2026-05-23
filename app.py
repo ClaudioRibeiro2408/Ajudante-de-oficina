@@ -66,6 +66,7 @@ with aba1:
     st.table(pd.DataFrame(carregar_json("clientes.json")))
 
 # ABA 2: ORÇAMENTO
+# ABA 2: ORÇAMENTO
 with aba2:
     st.header("💰 Orçamento Técnico")
     
@@ -79,18 +80,17 @@ with aba2:
             qtd_medida = st.number_input("Quantidade (Unidade ou Litros)", min_value=0.0)
             
         with col2:
-            # Substituindo o antigo selectbox por dois seletores separados
             eixo = st.selectbox("Eixo", ["Nenhum", "Dianteira", "Traseira"])
             lado = st.selectbox("Lado", ["Nenhum", "Direito", "Esquerdo"])
-            
-            horas_mao_obra = st.number_input("Horas de Mão de Obra", min_value=0.0)
+            # Mantemos a lógica de horas no código, mas chamamos o campo de "Mão de Obra"
+            horas = st.number_input("Mão de Obra (Horas)", min_value=0.0)
             valor_hora = st.number_input("Valor da Hora Técnica (R$)", value=100.0)
         
         if st.form_submit_button("Adicionar ao Orçamento"):
             # Cálculos
             lucro_valor = valor_venda - valor_pago
             lucro_porc = (lucro_valor / valor_pago * 100) if valor_pago > 0 else 0
-            total_mao_obra = horas_mao_obra * valor_hora
+            total_mo = horas * valor_hora # Cálculo interno
             
             dados = carregar_json("orcamentos.json")
             novo_item = {
@@ -101,18 +101,20 @@ with aba2:
                 "Qtd": qtd_medida,
                 "Eixo": eixo,
                 "Lado": lado,
-                "Mão de Obra Total": total_mao_obra
+                "Mão de Obra": total_mo # Nome exibido como "Mão de Obra"
             }
             dados.append(novo_item)
             salvar_json("orcamentos.json", dados)
-            st.success("Item adicionado ao orçamento!")
+            st.success("Item adicionado!")
 
     st.subheader("Itens no Orçamento")
     lista_orc = carregar_json("orcamentos.json")
     if lista_orc:
         df_orc = pd.DataFrame(lista_orc)
+        # Renomeamos a exibição na tabela se necessário
         st.table(df_orc)
-        st.metric("TOTAL DO ORÇAMENTO", f"R$ {df_orc['Venda'].sum() + df_orc['Mão de Obra Total'].sum():.2f}")
+        total_geral = (df_orc['Venda'] * df_orc['Qtd']).sum() + df_orc['Mão de Obra'].sum()
+        st.metric("TOTAL DO ORÇAMENTO", f"R$ {total_geral:.2f}")
 
 # ABA 3: DIAGNÓSTICO
 with aba3:
