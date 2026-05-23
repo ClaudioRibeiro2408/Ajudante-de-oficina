@@ -12,7 +12,7 @@ st.set_page_config(
 )
 
 st.title("🚀 Oficina Inteligente")
-st.subheader("Central Unificada de Diagnóstico, Laudos e Esquemas Elétricos")
+st.subheader("Central Unificada de Diagnóstico, Esquemas Elétricos e Ajustes de Osciloscópio")
 st.write("---")
 
 # Resgata a chave da API
@@ -21,11 +21,11 @@ api_key = os.environ.get("GEMINI_API_KEY")
 # Área de Entrada de Dados do Pátio
 prompt = st.text_area(
     "📝 Relato Técnico / Sintomas ou Solicitação de Esquema Elétrico:", 
-    placeholder="Ex 1: Fox 1.6 MSI falha na borboleta. Preciso do esquema elétrico do corpo de borboleta e pinagem do módulo.\nEx 2: Nivus 1.0 TSI com erro de sensor de fase, mandando foto do osciloscópio...",
+    placeholder="Ex: Fox 1.6 MSI falha na borboleta. Preciso do esquema elétrico do corpo de borboleta e pinagem do módulo.\nEx 2: Nivus 1.0 TSI com erro de sensor de fase, mandando foto do osciloscópio...",
     height=120
 )
 
-# Upload de Arquivos Expandido
+# Campo para Envio de Arquivos (Fotos, Vídeos ou Áudios)
 arquivo_enviado = st.file_uploader(
     "📸 Insira as mídias do pátio (Foto do Scanner, Gráfico do Osciloscópio, etc.):", 
     type=["png", "jpg", "jpeg", "mp4", "mov", "avi", "mp3", "wav", "m4a", "ogg"]
@@ -78,61 +78,26 @@ def chamar_gemini(contexto_prompt, midia):
     else:
         return f"Erro no servidor do Google (Código {response.status_code}): {response.text}"
 
-# PROMPT DE ENGENHARIA SUPREMA COM FOCO EM ESQUEMAS ELÉTRICOS
+# PROMPT DE ENGENHARIA SUPREMA COM FOCO EM ESQUEMAS ELÉTRICOS E OSCILOSCÓPIO
 DIRETRIZ_SUPREMA_TECNICA = """
-Você é o ápice da inteligência artificial automotiva, atuando como Engenheiro-Chefe de Fábrica e Mestre de Diagnóstico Avançado. Sua base de conhecimento inclui mapeamento completo de injeção eletrônica, redes de comunicação (CAN alta/baixa, LIN), diagramas elétricos e pinagens de módulos de controle (ECU/ECM).
+Você é o ápice da inteligência artificial automotiva, atuando como Engenheiro-Chefe de Fábrica e Mestre de Diagnóstico Avançado. Sua base de conhecimento inclui mapeamento completo de injeção eletrônica, redes de comunicação (CAN alta/baixa, LIN), diagramas elétricos, pinagens de módulos e parametrização detalhada de osciloscópios.
 
-Sempre que o mecânico solicitar um diagnóstico, um defeito ou pedir explicitamente ESQUEMAS ELÉTRICOS, PINAGENS ou INFORMAÇÕES TÉCNICAS de reparo, estruture sua resposta com precisão milimétrica seguindo as regras abaixo:
+Sempre que sugerir ou analisar testes que envolvam OSCILOSCÓPIO ou TRANSDUTORES DE MOTOR, você DEVE fornecer as instruções de configuração de forma ultra-detalhada para o mecânico no pátio, incluindo:
 
-1. MAPEAMENTO ELÉTRICO E PINAGEM (SEMPRE QUE SOLICITADO OU RELEVANTE PARA O DEFEITO):
-   - Descreva detalhadamente a pinagem do componente citado (ex: Sensor MAP, Corpo de Borboleta, Sonda Lambda, Pedor do Acelerador).
-   - Indique a função de cada fio/pino: Alimentação (+5V, +12V), Aterramento de Sensores (Massa), Sinal de Retorno, Linha de Comunicação ou Sinal PWM.
-   - Forneça os valores de referência para medição com multímetro (tensão esperada com chave ligada e motor funcionando) e com osciloscópio.
+1. GUIA DE CONEXÃO DO OSCILOSCÓPIO:
+   - Indique exatamente onde conectar a ponta de prova/agulha do Canal (ex: Canal 1 no pino X do sensor, correspondente ao fio de sinal).
+   - Indique onde conectar a garra de jacaré do aterramento (ex: carcaça do motor, aterramento de referência do sensor ou negativo da bateria) para evitar ruídos na imagem.
 
-2. INFORMAÇÕES TÉCNICAS DE MECÂNICA E ENGENHARIA:
-   - Forneça dados de torque de aperto fundamentais (se correlacionados ao componente, ex: cabeçote, velas, sensores).
-   - Indique folgas nominais, diagramas de sincronismo virtual (Fase e Rotação) e procedimentos de ajuste/aprendizado via scanner pós-troca.
-   - Detalhe especificações de fluidos e pressões nominais (ex: linha de combustível da família VW EA211 TSI/MSI e multimarcas).
+2. CONFIGURAÇÃO DE ESCALA DA TELA:
+   - Forneça o ajuste de TENSÃO por divisão ideal (ex: 1V/div, 2V/div, 5V/div) para que o sinal preencha a tela perfeitamente sem cortar.
+   - Forneça o ajuste de TEMPO por divisão ideal (ex: 2ms/div, 10ms/div, 500ms/div) para capturar ciclos completos do sinal ou o evento exato (como o tempo de centelha ou disparo do bico).
+   - Se aplicável, mencione o tipo de Trigger recomendado (Borda de subida/descida, canal de referência) para congelar a onda na tela.
 
-3. DIAGNÓSTICO INTEGRADO (TEXTO E MÍDIA):
-   - Cruze fotos de scanners (DTCs), oscilogramas ou ruídos de áudio/vídeo com os diagramas elétricos para determinar se a falha é no chicote (curto ao positivo, curto à massa, circuito aberto), no sensor ou na própria ECU.
+3. PADRÃO DE ONDA ESPERADO (REFERÊNCIA DE BOM FUNCIONAMENTO):
+   - Descreva como deve ser o desenho correto na tela (ex: sinal de onda quadrada variando estritamente de 0V a 5V para sensores Hall, onda senoidal pura para indutivos, gráfico característico de disparo indutivo com pico de alta tensão para bobinas).
 
 Formate sua resposta técnica rigorosamente com estes títulos explicativos:
 ### 📋 Dados Técnicos Extraídos & Parâmetros do Veículo
 ### ⚡ Análise Elétrica e Lógica de Falhas
-### 🛠️ Mapeamento de Esquema Elétrico & Pinagens (Alimentação, Sinal e Massa)
-### 🔍 Roteiro Prático de Testes (Passo a passo no carro com Osciloscópio/Multímetro)
-### 💡 Diagnóstico Provável & Causa Raiz
-"""
-
-DIRETRIZ_SUPREMA_CLIENTE = """
-Você é o Diretor de Atendimento de uma oficina mecânica premium. Traduza o defeito ou necessidade de reparo técnico em um laudo comercial transparente, amigável e profissional para o WhatsApp do cliente.
-Destaque que a oficina está usando diagramas elétricos de fábrica e equipamentos avançados para garantir que o carro seja consertado sem tentativas e erros. Use tópicos limpos e emojis. Não mencione códigos de pinos ou valores técnicos difíceis para o cliente. Termine dizendo que a equipe está finalizando a cotação.
-"""
-
-# Execução do Botão Técnico
-if botao_tecnico and (prompt or arquivo_enviado):
-    if not api_key:
-        st.error("Chave da API não configurada nos Segredos do Streamlit.")
-    else:
-        with st.spinner("🚀 Consultando Engenharia de Fábrica e Esquemas Elétricos..."):
-            contexto = f"{DIRETRIZ_SUPREMA_TECNICA}\n\nSolicitação do Mecânico:\nTexto: {prompt}\nMídia: Analisar anexo se houver."
-            resposta = chamar_gemini(contexto, arquivo_enviado)
-            st.success("Informações Técnicas e Esquema Elétrico Gerados!")
-            st.markdown(resposta)
-
-# Execução do Botão Cliente
-if botao_cliente and (prompt or arquivo_enviado):
-    if not api_key:
-        st.error("Chave da API não configurada nos Segredos do Streamlit.")
-    else:
-        with st.spinner("✍️ Convertendo para linguagem comercial premium..."):
-            contexto = f"{DIRETRIZ_SUPREMA_CLIENTE}\n\nDados da Oficina:\nTexto: {prompt}\nMídia: Analisar anexo se houver."
-            resposta = chamar_gemini(contexto, arquivo_enviado)
-            st.success("Laudo Comercial Premium Gerado!")
-            st.info("💡 Pronto para cópia! Cole direto no WhatsApp do cliente:")
-            st.markdown(resposta)
-            st.balloons()
-
-elif (botao_tecnico or botao_cliente):
-    st.error("Atenção: Digite o veículo/sintoma ou peça o esquema elétrico no campo de texto antes de clicar.")
+### 🛠️ Mapeamento de Esquema Elétrico & Pinagens
+### 🔬 Guia do Osciloscópio (Conexão, Tempo
