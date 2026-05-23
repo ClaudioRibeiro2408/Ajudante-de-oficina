@@ -54,7 +54,8 @@ with aba1:
             modelo = st.text_input("Modelo")
             motor = st.text_input("Motorização")
             
-        if st.form_submit_button("Salvar Cliente"):
+        btn_cliente = st.form_submit_button("Salvar Cliente")
+        if btn_cliente:
             if nome and telefone:
                 dados = carregar_json("clientes.json")
                 dados.append({"Nome": nome, "Telefone": telefone, "Marca": marca, "Modelo": modelo, "Motor": motor})
@@ -62,6 +63,7 @@ with aba1:
                 st.success(f"Cliente {nome} salvo!")
             else:
                 st.error("Nome e Telefone obrigatórios.")
+    
     st.table(pd.DataFrame(carregar_json("clientes.json")))
 
 # ABA 2: ORÇAMENTO
@@ -77,4 +79,48 @@ with aba2:
         with col2:
             eixo = st.selectbox("Eixo", ["Nenhum", "Dianteira", "Traseira"])
             lado = st.selectbox("Lado", ["Nenhum", "Direito", "Esquerdo"])
-            horas = st
+            horas = st.number_input("Mão de Obra (Horas)", min_value=0.0)
+            valor_hora = st.number_input("Valor da Hora Técnica (R$)", value=100.0)
+        
+        btn_orc = st.form_submit_button("Adicionar ao Orçamento")
+        if btn_orc:
+            lucro_valor = valor_venda - valor_pago
+            lucro_porc = (lucro_valor / valor_pago * 100) if valor_pago > 0 else 0
+            total_mo = horas * valor_hora
+            
+            dados = carregar_json("orcamentos.json")
+            novo_item = {
+                "Peça": peca, "Custo": valor_pago, "Venda": valor_venda,
+                "Lucro %": round(lucro_porc, 2), "Qtd": qtd_medida,
+                "Eixo": eixo, "Lado": lado, "Mão de Obra": total_mo
+            }
+            dados.append(novo_item)
+            salvar_json("orcamentos.json", dados)
+            st.success("Item adicionado!")
+
+    st.subheader("Itens no Orçamento")
+    lista_orc = carregar_json("orcamentos.json")
+    if lista_orc:
+        df_orc = pd.DataFrame(lista_orc)
+        if 'Mão de Obra' not in df_orc.columns:
+            df_orc['Mão de Obra'] = 0.0
+        st.table(df_orc)
+        total_geral = (df_orc['Venda'] * df_orc['Qtd']).sum() + df_orc['Mão de Obra'].sum()
+        st.metric("TOTAL DO ORÇAMENTO", f"R$ {total_geral:.2f}")
+
+# ABA 3: DIAGNÓSTICO
+with aba3:
+    st.header("🔧 Diagnóstico Técnico IA")
+    veiculo = st.text_input("Veículo/Modelo")
+    problema = st.text_area("Sintoma ou falha")
+    if st.button("Buscar Diagnóstico"):
+        if veiculo and problema:
+            with st.spinner("Analisando..."):
+                resultado = chamar_gemini(f"Diagnóstico para {veiculo}: {problema}")
+                st.markdown("### 💡 Resultado:")
+                st.write(resultado)
+
+# ABA 4: HISTÓRICO
+with aba4:
+    st.header("📋 Histórico Geral")
+    st.info("Sistema ativo e operante.")
