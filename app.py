@@ -22,18 +22,20 @@ def salvar_json(arquivo, dados):
 def chamar_gemini(prompt):
     api_key = st.secrets.get("GEMINI_API_KEY")
     if not api_key:
-        return "Erro: Chave API não configurada nos Secrets do Streamlit."
+        return "Erro: Chave API (GEMINI_API_KEY) não configurada nos Secrets."
     
-    url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key={api_key}"
+    # URL para o modelo gemini-pro (Mais compatível e estável)
+    url = f"https://generativelanguage.googleapis.com/v1/models/gemini-pro:generateContent?key={api_key}"
+    
     payload = {"contents": [{"parts": [{"text": prompt}]}]}
-    headers = {'Content-Type': 'application/json'}
     
     try:
-        response = requests.post(url, headers=headers, json=payload)
+        response = requests.post(url, json=payload)
         if response.status_code == 200:
-            return response.json()['candidates'][0]['content']['parts'][0]['text']
+            data = response.json()
+            return data['candidates'][0]['content']['parts'][0]['text']
         else:
-            return f"Erro na API: {response.status_code} - {response.text}"
+            return f"Erro na API ({response.status_code}): Verifique sua chave ou limite de uso."
     except Exception as e:
         return f"Erro de conexão: {str(e)}"
 
@@ -42,6 +44,7 @@ st.title("⚙️ Oficina Pro | Gestão e Diagnóstico IA")
 
 aba1, aba2, aba3, aba4 = st.tabs(["👤 Clientes", "📦 Estoque", "🔧 Diagnóstico Técnico", "📋 Histórico"])
 
+# ABA 1: CLIENTES
 with aba1:
     st.header("Cadastro de Clientes")
     with st.form("form_cli"):
@@ -51,9 +54,10 @@ with aba1:
             dados = carregar_json("clientes.json")
             dados.append({"Nome": nome, "Placa": placa})
             salvar_json("clientes.json", dados)
-            st.success("Salvo!")
+            st.success("Cliente salvo!")
     st.table(pd.DataFrame(carregar_json("clientes.json")))
 
+# ABA 2: ESTOQUE
 with aba2:
     st.header("Almoxarifado")
     with st.form("form_estoque"):
@@ -66,21 +70,16 @@ with aba2:
             st.rerun()
     st.table(pd.DataFrame(carregar_json("estoque.json")))
 
+# ABA 3: DIAGNÓSTICO
 with aba3:
     st.header("🔧 Diagnóstico Técnico Inteligente")
-    veiculo = st.text_input("Veículo/Modelo")
-    problema = st.text_area("Descreva o sintoma ou falha")
+    veiculo = st.text_input("Veículo/Modelo", placeholder="Ex: Onix 1.4 2018")
+    problema = st.text_area("Descreva o sintoma ou falha", placeholder="Ex: Carro falhando ao acelerar em baixa rotação")
     
     if st.button("Buscar Diagnóstico IA"):
         if veiculo and problema:
-            with st.spinner("Consultando IA..."):
-                prompt = f"O mecânico está diagnosticando um {veiculo}. O problema é: {problema}. Liste 3 causas prováveis e testes sugeridos."
+            with st.spinner("Analisando sintomas com IA..."):
+                prompt = f"O mecânico está diagnosticando um {veiculo}. O problema relatado é: {problema}. Liste as 3 causas mais prováveis e os procedimentos de teste sugeridos."
                 resultado = chamar_gemini(prompt)
-                st.markdown("### 💡 Resultado:")
-                st.write(resultado)
-        else:
-            st.error("Preencha veículo e problema.")
-
-with aba4:
-    st.header("📋 Histórico Geral")
-    st.info("Sistema ativo.")
+                st.markdown("### 💡 Resultado da Análise:")
+                st
