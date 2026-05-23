@@ -4,15 +4,17 @@ import os
 import pandas as pd
 import requests
 
+# Configuração de Layout
 st.set_page_config(page_title="Oficina Pro", layout="wide")
 
 def chamar_gemini(prompt):
+    # Recupera a chave do Secrets
     api_key = st.secrets.get("GEMINI_API_KEY")
     if not api_key:
-        return "ERRO: Chave API não encontrada no Secrets."
+        return "Erro: Chave não encontrada no Secrets."
     
-    # URL corrigida para o endpoint oficial atual
-    url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key={api_key}"
+    # URL padrão e modelo clássico (gemini-pro) que funciona em todas as chaves
+    url = f"https://generativelanguage.googleapis.com/v1/models/gemini-pro:generateContent?key={api_key}"
     
     payload = {"contents": [{"parts": [{"text": prompt}]}]}
     
@@ -21,28 +23,25 @@ def chamar_gemini(prompt):
         if response.status_code == 200:
             return response.json()['candidates'][0]['content']['parts'][0]['text']
         else:
-            # Aqui vamos capturar o erro real do Google para sabermos se o problema é o modelo
-            return f"ERRO API ({response.status_code}): {response.text}"
+            return f"Erro na API ({response.status_code}): O Google rejeitou a chave ou modelo."
     except Exception as e:
-        return f"ERRO DE CONEXÃO: {str(e)}"
+        return f"Erro técnico: {str(e)}"
 
+# Interface Principal
 st.title("⚙️ Oficina Pro")
+tabs = st.tabs(["👤 Clientes", "📦 Estoque", "🔧 Diagnóstico", "📋 Histórico"])
 
-aba1, aba2, aba3, aba4 = st.tabs(["👤 Clientes", "📦 Estoque", "🔧 Diagnóstico", "📋 Histórico"])
-
-with aba3:
-    st.header("Diagnóstico Técnico")
+# ABA DIAGNÓSTICO (A que importa agora)
+with tabs[2]:
+    st.header("Diagnóstico Técnico IA")
     veiculo = st.text_input("Veículo")
-    problema = st.text_area("Sintoma")
+    problema = st.text_area("Descreva o sintoma")
     
-    if st.button("Buscar"):
+    if st.button("Buscar Diagnóstico"):
         if veiculo and problema:
-            with st.spinner("Consultando IA..."):
-                prompt = f"O veículo é {veiculo} e apresenta: {problema}. Liste 3 causas e testes."
+            with st.spinner("Analisando..."):
+                prompt = f"Como mecânico, analise este problema: {veiculo} com {problema}. Liste 3 causas e testes."
                 resultado = chamar_gemini(prompt)
-                
-                # Exibição segura
-                st.markdown("### Resultado:")
                 st.write(resultado)
         else:
-            st.warning("Preencha tudo.")
+            st.error("Preencha o veículo e o sintoma.")
