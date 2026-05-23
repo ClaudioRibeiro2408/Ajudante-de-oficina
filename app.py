@@ -21,7 +21,7 @@ api_key = os.environ.get("GEMINI_API_KEY")
 # Área de Entrada de Dados do Pátio
 prompt = st.text_area(
     "📝 Relato Técnico / Sintomas ou Solicitação de Esquema Elétrico:", 
-    placeholder="Ex: Fox 1.6 MSI falha na borboleta. Preciso do esquema elétrico do corpo de borboleta e pinagem do módulo.\nEx 2: Nivus 1.0 TSI com erro de sensor de fase, mandando foto do osciloscópio...",
+    placeholder="Ex: Fox 1.6 MSI falha na borboleta. Preciso do esquema elétrico do corpo de borboleta.\nEx 2: Nivus 1.0 TSI com erro de sensor de fase, mandando foto do osciloscópio...",
     height=120
 )
 
@@ -100,4 +100,39 @@ Formate sua resposta técnica rigorosamente com estes títulos explicativos:
 ### 📋 Dados Técnicos Extraídos & Parâmetros do Veículo
 ### ⚡ Análise Elétrica e Lógica de Falhas
 ### 🛠️ Mapeamento de Esquema Elétrico & Pinagens
-### 🔬 Guia do Osciloscópio (Conexão, Tempo
+### 🔬 Guia do Osciloscópio (Conexão, Tempo/Tensão por Divisão e Sinal Esperado)
+### 🔍 Roteiro Prático de Testes (Passo a passo complementar no pátio)
+### 💡 Diagnóstico Provável & Causa Raiz
+"""
+
+DIRETRIZ_SUPREMA_CLIENTE = """
+Você é o Diretor de Atendimento de uma oficina mecânica premium. Traduza o defeito ou necessidade de reparo técnico em um laudo comercial transparente, amigável e profissional para o WhatsApp do cliente.
+Destaque que a oficina usa equipamentos de diagnóstico por imagem de alta tecnologia (gráficos de comportamento do motor) e diagramas elétricos de fábrica para garantir precisão absoluta, eliminando o 'troquismo' de peças. Use tópicos limpos e emojis. Termine dizendo que a equipe está finalizando a cotação.
+"""
+
+# Execução do Botão Técnico
+if botao_tecnico and (prompt or arquivo_enviado):
+    if not api_key:
+        st.error("Chave da API não configurada nos Segredos do Streamlit.")
+    else:
+        with st.spinner("🚀 Consultando Engenharia de Fábrica, Esquemas e Configurações de Osciloscópio..."):
+            contexto = f"{DIRETRIZ_SUPREMA_TECNICA}\n\nSolicitação do Mecânico:\nTexto: {prompt}\nMídia: Analisar anexo se houver."
+            resposta = chamar_gemini(contexto, arquivo_enviado)
+            st.success("Informações Técnicas, Esquema e Guia do Osciloscópio Gerados!")
+            st.markdown(resposta)
+
+# Execução do Botão Cliente
+if botao_cliente and (prompt or arquivo_enviado):
+    if not api_key:
+        st.error("Chave da API não configurada nos Segredos do Streamlit.")
+    else:
+        with st.spinner("✍️ Convertendo para linguagem comercial premium..."):
+            contexto = f"{DIRETRIZ_SUPREMA_CLIENTE}\n\nDados da Oficina:\nTexto: {prompt}\nMídia: Analisar anexo se houver."
+            resposta = chamar_gemini(contexto, arquivo_enviado)
+            st.success("Laudo Comercial Premium Gerado!")
+            st.info("💡 Pronto para cópia! Cole direto no WhatsApp do cliente:")
+            st.markdown(resposta)
+            st.balloons()
+
+elif (botao_tecnico or botao_cliente):
+    st.error("Atenção: Digite o veículo/sintoma ou peça o esquema elétrico no campo de texto antes
