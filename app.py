@@ -99,7 +99,8 @@ with aba2:
                 "Venda": valor_venda,
                 "Lucro %": round(lucro_porc, 2),
                 "Qtd": qtd_medida,
-                "Posição": posicao,
+                "Eixo": eixo,
+                "Lado": lado,
                 "Mão de Obra Total": total_mao_obra
             }
             dados.append(novo_item)
