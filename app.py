@@ -56,7 +56,6 @@ def carregar_clientes():
 
 def salvar_cliente(nome, telefone, placa, marca, modelo, ano, motorizacao):
     clientes = carregar_clientes()
-    # Verifica se a placa já existe para não duplicar, se existir substitui os dados
     clientes = [c for c in clientes if c["placa"] != placa.upper().strip()]
     
     novo_cadastro = {
@@ -126,9 +125,16 @@ def generar_pdf_orcamento(dados_oficina, cliente, veiculo, placa, reclamacao, it
     
     return pdf.output()
 
-# Título Principal
+# Título Principal do Painel
 st.title("🚀 Oficina Inteligente")
 st.write("---")
+
+# CONFIGURAÇÕES DE IDENTIDADE NA BARRA LATERAL (SIDEBAR)
+st.sidebar.markdown("### 🏢 Identidade da Oficina")
+oficina_nome = st.sidebar.text_input("Nome da Oficina:", value="Ribeiro & Claudio Automotiva")
+oficina_end = st.sidebar.text_input("Endereço:", value="Rua Principal, 123")
+oficina_tel = st.sidebar.text_input("Telefone/WhatsApp:", value="(45) 99999-9999")
+dados_oficina = {"nome": oficina_nome, "endereco": oficina_end, "telefone": oficina_tel}
 
 # Definição das 4 Abas do Sistema
 aba_patio, aba_orcamento, aba_clientes, aba_historico = st.tabs([
@@ -198,197 +204,24 @@ with aba_patio:
                 if plc_p: salvar_no_historico(cli_p, veh_p, plc_p, "🔧 Diagnóstico", prompt_p, res)
 
 # ==========================================
-# ABA 2: ORÇAMENTO COMERCIAL E LINK DINÂMICO
+# ABA 2: ORÇAMENTO COMERCIAL E DESIGN HARMONIOSO
 # ==========================================
 with aba_orcamento:
-    st.subheader("💰 Construtor de Orçamento Profissional")
-    
-    st.markdown("### 🏢 Dados do Emitente")
-    col_of1, col_of2, col_of3 = st.columns([2, 2, 1.5])
-    oficina_nome = col_of1.text_input("Nome da Oficina:", value="Oficina Mecânica")
-    oficina_end = col_of2.text_input("Endereço:", value="Rua Principal, 123")
-    oficina_tel = col_of3.text_input("Telefone:", value="(45) 99999-9999")
-    dados_oficina = {"nome": oficina_nome, "endereco": oficina_end, "telefone": oficina_tel}
-
-    st.write("---")
-    st.markdown("### 🚗 Dados do Atendimento & Vínculo")
-    
-    lista_cadastrados = carregar_clientes()
-    modo_o = st.radio("Como preencher os dados do veículo:", ["Buscar Cliente Cadastrado", "Digitar Manualmente"], horizontal=True, key="modo_o")
-    
-    cli_o, veh_o, plc_o = "", "", ""
-    
-    if modo_o == "Buscar Cliente Cadastrado" and lista_cadastrados:
-        opcoes_placa = [f"{c['placa']} - {c['nome']} ({c['modelo']})" for c in lista_cadastrados]
-        selecionado_o = st.selectbox("Selecione o Veículo pela Placa:", opcoes_placa, key="sel_o")
-        idx_o = opcoes_placa.index(selecionado_o)
-        dados_co = lista_cadastrados[idx_o]
-        cli_o = dados_co["nome"]
-        veh_o = f"{dados_co['marca']} {dados_co['modelo']} {dados_co['motorizacao']} {dados_co['ano']}"
-        plc_o = dados_co["placa"]
-        st.success(f"🔗 **Dados Vinculados com Sucesso!** Carro: {veh_o} | Cliente: {cli_o}")
+    # DESIGN DA LOGO / BANNER INTEGRADO
+    if os.path.exists("logo.png"):
+        # Se você subir uma imagem chamada logo.png no seu GitHub, ela centraliza perfeitamente aqui
+        st.image("logo.png", use_container_width=True)
     else:
-        if modo_o == "Buscar Cliente Cadastrado":
-            st.warning("Nenhum cliente no banco de dados. Digite manualmente abaixo.")
-        c1, c2, c3 = st.columns([2, 2, 1])
-        cli_o = c1.text_input("Cliente:", key="cli_o_man")
-        veh_o = c2.text_input("Veículo (Marca/Modelo/Motor):", key="veh_o_man")
-        plc_o = c3.text_input("Placa:", key="plc_o_man").upper()
-    
-    st.write("---")
-    reclamacao_cliente = st.text_area("📋 Reclamação/Sintoma relatado pelo Cliente na Entrada:", placeholder="Ex: Barulho na suspensão ao passar em irregularidades.")
-    status_atual = st.selectbox("📊 Status Inicial do Orçamento:", ["Aguardando Orçamento", "Aprovado", "Cancelado", "Aguardando Peças", "Concluído"])
-
-    st.write("---")
-    tipo_insercao = st.radio("Selecione o tipo de item para adicionar:", ["📦 Peça / Componente", "🔧 Mão de Obra / Serviço"], horizontal=True)
-    
-    if tipo_insercao == "📦 Peça / Componente":
-        col_p1, col_p2, col_p3 = st.columns([2, 1, 1])
-        nome_item = col_p1.text_input("Nome da Peça:")
-        qtd = col_p2.number_input("Quantidade:", min_value=0.1, value=1.0, step=0.5)
-        unidade = col_p3.selectbox("Unidade:", ["Unidade(s)", "Litro(s)"])
-        
-        col_p4, col_p5, col_p6 = st.columns([1, 1, 1])
-        lado = col_p4.selectbox("Lado:", ["Não se aplica", "Lado Direito (LD)", "Lado Esquerdo (LE)", "Ambos os Lados"])
-        posicao = col_p5.selectbox("Posição:", ["Não se aplica", "Dianteiro", "Traseiro"])
-        preco_unit = col_p6.number_input("Preço Unitário (R$):", min_value=0.0, value=0.0, step=10.0)
-        
-        if st.button("➕ Adicionar Peça", use_container_width=True):
-            if nome_item:
-                detalhe_posicao = ""
-                if lado != "Não se aplica": detalhe_posicao += f" - {lado}"
-                if posicao != "Não se aplica": detalhe_posicao += f" {posicao}"
-                item_formatado = {"tipo": "Peça", "descricao": f"{nome_item}{detalhe_posicao}", "quantidade": f"{qtd} {unidade}", "valor": qtd * preco_unit}
-                st.session_state.itens_orcamento.append(item_formatado)
-                st.success(f"'{nome_item}' adicionado!")
-                st.rerun()
-
-    else:
-        col_m1, col_m2, col_m3 = st.columns([2, 1, 1])
-        nome_servico = col_m1.text_input("Descrição do Serviço:")
-        horas_trab = col_m2.number_input("Horas de Mão de Obra:", min_value=0.1, value=1.0, step=0.1)
-        valor_hora = col_m3.number_input("Valor da Hora Técnica (R$):", min_value=0.0, value=150.0, step=10.0)
-        
-        if st.button("➕ Adicionar Serviço", use_container_width=True):
-            if nome_servico:
-                item_formatado = {"tipo": "Mão de Obra", "descricao": nome_servico, "quantidade": f"{horas_trab} h", "valor": horas_trab * valor_hora}
-                st.session_state.itens_orcamento.append(item_formatado)
-                st.success("Serviço adicionado!")
-                st.rerun()
-
-    st.write("---")
-    st.subheader("📋 Resumo da Ordem de Serviço")
-    
-    total_acumulado = 0.0
-    if st.session_state.itens_orcamento:
-        for idx, item in enumerate(st.session_state.itens_orcamento):
-            c_desc, c_qtd, c_val, c_del = st.columns([3, 1, 1, 0.5])
-            c_desc.write(f"**{item['tipo']}:** {item['descricao']}")
-            c_qtd.write(f"{item['quantidade']}")
-            c_val.write(f"R$ {item['valor']:.2f}")
-            if c_del.button("❌", key=f"del_{idx}"):
-                st.session_state.itens_orcamento.pop(idx)
-                st.rerun()
-            total_acumulado += item["valor"]
-            
-        st.write(f"#### 💰 Total Geral Calculado: **R$ {total_acumulado:.2f}**")
-    else: st.info("Nenhum item adicionado.")
-
-    if st.session_state.itens_orcamento and st.button("🗑️ Limpar Tudo", type="secondary"):
-        st.session_state.itens_orcamento = []
-        st.rerun()
-
-    st.write("---")
-    
-    if st.session_state.itens_orcamento:
-        col_pdf, col_wa = st.columns(2)
-        
-        with col_pdf:
-            bytes_pdf = generar_pdf_orcamento(dados_oficina, cli_o, veh_o, plc_o, reclamacao_cliente, st.session_state.itens_orcamento, total_acumulado)
-            st.download_button(
-                label="📥 Baixar Orçamento em PDF",
-                data=bytes_pdf,
-                file_name=f"Orcamento_{plc_o if plc_o else 'SemPlaca'}.pdf",
-                mime="application/pdf",
-                use_container_width=True
-            )
-            
-        with col_wa:
-            if st.button("🚀 Formatar Texto de Venda (WhatsApp)", use_container_width=True):
-                with st.spinner("Formatando..."):
-                    texto_itens = "".join([f"- {i['tipo']}: {i['descricao']} ({i['quantidade']}) -> R$ {i['valor']:.2f}\n" for i in st.session_state.itens_orcamento])
-                    contexto_o = f"Você é Diretor Comercial de oficina mecânica. Formate uma mensagem excelente para o cliente {cli_o} sobre o veículo {veh_o}. Queixa: {reclamacao_cliente}. Itens:\n{texto_itens}\nTotal: R$ {total_acumulado:.2f}"
-                    res_o = chamar_gemini(contexto_o)
-                    st.success("Texto pronto!")
-                    st.markdown(res_o)
-                    if plc_o: salvar_no_historico(cli_o, veh_o, plc_o, "💰 Orçamento", reclamacao_cliente, res_o, status_atual)
-
-# ==========================================
-# ABA 3: CADASTRO DE CLIENTES E VEÍCULOS
-# ==========================================
-with aba_clientes:
-    st.subheader("🗂️ Cadastro Central de Clientes e Veículos")
-    
-    with st.form("form_cadastro_cliente", clear_on_submit=True):
-        st.markdown("#### 👤 Dados do Proprietário")
-        c_nome = st.text_input("Nome Completo do Cliente:")
-        c_tel = st.text_input("Telefone/WhatsApp:")
-        
-        # ALTERADO: Mudança de "Dados da Máquina" para "Dados do Veículo"
-        st.markdown("#### 🚗 Dados do Veículo")
-        cc1, cc2, cc3 = st.columns([1, 2, 1])
-        c_placa = cc1.text_input("Placa do Veículo:").upper().strip()
-        c_marca = cc2.text_input("Marca (Ex: Volkswagen, Chevrolet):")
-        c_modelo = cc3.text_input("Modelo (Ex: Golf, Onix, Up):")
-        
-        cc4, cc5 = st.columns(2)
-        c_motor = cc4.text_input("Motorização (Ex: 1.0 TSI, 1.4 TSI, 1.6 MSI):")
-        c_ano = cc5.text_input("Ano de Fabricação/Modelo (Ex: 2018/2019):")
-        
-        btn_cadastrar = st.form_submit_button("💾 Salvar Cadastro no Banco de Dados", use_container_width=True)
-        
-        if btn_cadastrar:
-            if c_nome and c_placa and c_modelo:
-                salvar_cliente(c_nome, c_tel, c_placa, c_marca, c_modelo, c_ano, c_motor)
-                st.success(f"✅ Sucesso! Cliente '{c_nome}' e veículo de placa '{c_placa}' foram blindados no sistema!")
-            else:
-                st.error("Por favor, preencha pelo menos os campos essenciais: Nome, Placa e Modelo.")
-
-    st.write("---")
-    st.markdown("#### 🔍 Lista de Clientes e Frotas Cadastradas")
-    banco_clientes = carregar_clientes()
-    if banco_clientes:
-        for c in reversed(banco_clientes):
-            with st.expander(f"🚗 {c['placa']} - {c['nome']} ({c['modelo']})"):
-                st.write(f"**Telefone:** {c['telefone']}")
-                st.write(f"**Veículo:** {c['marca']} {c['modelo']} - Ano: {c['ano']}")
-                st.write(f"**Motorização:** {c['motorizacao']}")
-    else:
-        st.info("Nenhum cliente registrado na base de dados.")
-
-# ==========================================
-# ABA 4: HISTÓRICO DE VEÍCULOS E STATUS
-# ==========================================
-with aba_historico:
-    st.subheader("📊 Consulta de Histórico & Status das O.S.")
-    busca = st.text_input("🔍 Digite a Placa para buscar:", key="busca_plc").upper().strip()
-    historico = carregar_historico()
-    
-    if busca:
-        resultados = [i for i in historico if i["placa"] == busca]
-        if resultados:
-            for item in reversed(resultados):
-                badge_status = f"[{item.get('status', 'Orçamento')}]"
-                with st.expander(f"📅 {item['data']} - {badge_status} {item['tipo']} ({item['veiculo']})"):
-                    st.write(f"**Cliente:** {item['cliente']}")
-                    st.write(f"**Queixa Registrada:** {item['relato']}")
-                    st.write("**Resumo:**")
-                    st.markdown(item['resultado'])
-        else: st.warning("Nenhum registro para esta placa.")
-    elif historico:
-        st.write("Últimos atendimentos no pátio:")
-        for item in list(reversed(historico))[:5]:
-            badge_status = f"[{item.get('status', 'Orçamento')}]"
-            with st.expander(f"📅 {item['data']} - Placa: {item['placa']} - {badge_status} {item['veiculo']}"):
-                st.write(f"**Cliente:** {item['cliente']}")
-                st.markdown(item['resultado'])
+        # Se não houver arquivo físico de imagem, gera um layout de cabeçalho moderno e limpo via código
+        st.markdown(f"""
+        <div style="background: linear-gradient(135deg, #1e1e2f 0%, #0e0e1a 100%); 
+                    padding: 25px; 
+                    border-radius: 12px; 
+                    text-align: center; 
+                    border-left: 6px solid #ff4b4b;
+                    margin-bottom: 25px;
+                    box-shadow: 0px 4px 15px rgba(0,0,0,0.3);">
+            <h1 style="color: #ffffff; margin: 0; font-family: 'Helvetica', sans-serif; letter-spacing: 2px; font-size: 26px;">
+                ⚙️ {oficina_nome.upper()}
+            </h1>
+            <p style="color: #a3a3c2; margin: 5px 0 0
