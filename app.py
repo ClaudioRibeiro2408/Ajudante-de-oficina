@@ -7,13 +7,13 @@ import requests
 st.set_page_config(page_title="Oficina Pro", layout="wide")
 
 def chamar_gemini(prompt):
-    # Pega a chave dos secrets
     api_key = st.secrets.get("GEMINI_API_KEY")
-    
     if not api_key:
         return "ERRO: Chave API não encontrada no Secrets."
     
-    url = f"https://generativelanguage.googleapis.com/v1/models/gemini-pro:generateContent?key={api_key}"
+    # URL corrigida para o endpoint oficial atual
+    url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key={api_key}"
+    
     payload = {"contents": [{"parts": [{"text": prompt}]}]}
     
     try:
@@ -21,7 +21,8 @@ def chamar_gemini(prompt):
         if response.status_code == 200:
             return response.json()['candidates'][0]['content']['parts'][0]['text']
         else:
-            return f"ERRO API ({response.status_code}): Verifique se sua chave está correta no Secrets."
+            # Aqui vamos capturar o erro real do Google para sabermos se o problema é o modelo
+            return f"ERRO API ({response.status_code}): {response.text}"
     except Exception as e:
         return f"ERRO DE CONEXÃO: {str(e)}"
 
