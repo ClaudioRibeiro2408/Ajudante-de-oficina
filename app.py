@@ -19,16 +19,22 @@ ARQUIVO_BANCO = "historico_os.json"
 def carregar_historico():
     if os.path.exists(ARQUIVO_BANCO):
         with open(ARQUIVO_BANCO, "r", encoding="utf-8") as f:
-            try: return json.load(f)
-            except: return []
+            try:
+                return json.load(f)
+            except:
+                return []
     return []
 
 def salvar_no_historico(cliente, veiculo, placa, tipo, relato, resultado):
     historico = carregar_historico()
     nova_entrada = {
         "data": datetime.now().strftime("%d/%m/%Y %H:%M"),
-        "cliente": cliente, "veiculo": veiculo, "placa": placa.upper().strip(),
-        "tipo": tipo, "relato": relato, "resultado": resultado
+        "cliente": cliente,
+        "veiculo": veiculo,
+        "placa": placa.upper().strip(),
+        "tipo": tipo,
+        "relato": relato,
+        "resultado": resultado
     }
     historico.append(nova_entrada)
     with open(ARQUIVO_BANCO, "w", encoding="utf-8") as f:
@@ -80,13 +86,15 @@ with aba_patio:
     midia_p = st.file_uploader("Envie Foto/Vídeo/Áudio do defeito:", type=["png","jpg","jpeg","mp4","mov","avi","mp3","wav","m4a"])
 
     if st.button("Executar Análise de Engenharia", use_container_width=True):
-        if not api_key: st.error("API Key ausente.")
+        if not api_key:
+            st.error("API Key ausente.")
         else:
             with st.spinner("🚀 Consultando Engenharia de Fábrica..."):
                 diretriz = "Você é Engenheiro-Chefe. Dê diagnóstico, esquema elétrico e parametrização de osciloscópio (Tempo/Tensão/Conexão). Títulos: ### 📋 Dados, ### ⚡ Análise, ### 🛠️ Elétrica, ### 🔬 Osciloscópio, ### 💡 Diagnóstico."
                 res = chamar_gemini(f"{diretriz}\nCarro:{veh_p}\nRelato:{prompt_p}", midia_p)
                 st.markdown(res)
-                if plc_p: salvar_no_historico(cli_p, veh_p, plc_p, "🔧 Diagnóstico", prompt_p, res)
+                if plc_p:
+                    salvar_no_historico(cli_p, veh_p, plc_p, "🔧 Diagnóstico", prompt_p, res)
 
 # ==========================================
 # ABA 2: ORÇAMENTO COMERCIAL PRO
@@ -103,22 +111,5 @@ with aba_orcamento:
     mao_obra = st.number_input("Valor da Mão de Obra (R$):", min_value=0.0, step=50.0)
     
     if st.button("Gerar Orçamento para WhatsApp", use_container_width=True):
-        if not api_key: st.error("API Key ausente.")
-        else:
-            with st.spinner("✍️ Formatando Orçamento Comercial..."):
-                contexto_o = f"""
-                Você é Diretor Comercial de uma oficina premium. Transforme esta lista de peças e mão de obra em um orçamento profissional para WhatsApp.
-                DIRETRIZES:
-                1. Organize em tópicos limpos com emojis.
-                2. Explique brevemente o benefício de usar peças de qualidade e a garantia do serviço.
-                3. Calcule o TOTAL GERAL somando tudo.
-                4. Linguagem: Transparente, educada e vendedora.
-                DADOS:
-                Veículo: {veh_o}
-                Peças: {lista_pecas}
-                Mão de Obra: R$ {mao_obra}
-                """
-                res_o = chamar_gemini(contexto_o)
-                st.success("Orçamento Gerado!")
-                st.markdown(res_o)
-                if plc_o:
+        if not api_key:
+            st.error
