@@ -7,54 +7,52 @@ from datetime import datetime
 
 # Configuração premium da página
 st.set_page_config(
-    page_title="Oficina Inteligente - Diagnóstico Avançado", 
+    page_title="Oficina Inteligente - Gestão Total", 
     page_icon="🚀",
     layout="centered"
 )
 
-# Nome do arquivo que funcionará como banco de dados
+# Nome do arquivo de banco de dados
 ARQUIVO_BANCO = "historico_os.json"
 
-# Funções para gerenciar o banco de dados JSON
+# Funções de Banco de Dados
 def carregar_historico():
     if os.path.exists(ARQUIVO_BANCO):
         with open(ARQUIVO_BANCO, "r", encoding="utf-8") as f:
-            try:
-                return json.load(f)
-            except:
-                return []
+            try: return json.load(f)
+            except: return []
     return []
 
-def salvar_no_historico(cliente, veiculo, placa, tipo_laudo, relato, resultado):
+def salvar_no_historico(cliente, veiculo, placa, tipo, relato, resultado):
     historico = carregar_historico()
-    nova_os = {
+    nova_entrada = {
         "data": datetime.now().strftime("%d/%m/%Y %H:%M"),
-        "cliente": cliente,
-        "veiculo": veiculo,
-        "placa": placa.upper().strip(),
-        "tipo": tipo_laudo,
-        "relato": relato,
-        "resultado": resultado
+        "cliente": cliente, "veiculo": veiculo, "placa": placa.upper().strip(),
+        "tipo": tipo, "relato": relato, "resultado": resultado
     }
-    historico.append(nova_os)
+    historico.append(nova_entrada)
     with open(ARQUIVO_BANCO, "w", encoding="utf-8") as f:
         json.dump(historico, f, ensure_ascii=False, indent=4)
 
-# Título Principal do App
+# Título Principal
 st.title("🚀 Oficina Inteligente")
 st.write("---")
 
-# Criação de Abas: Uma para trabalhar no pátio e outra para consultar o histórico
-aba_patio, aba_historico = st.tabs(["🔧 Nova Ordem de Serviço", "🗂️ Histórico de Diagnósticos"])
+# Definição das 3 Abas
+aba_patio, aba_orcamento, aba_historico = st.tabs([
+    "🔧 Diagnóstico Técnico", 
+    "💰 Gerar Orçamento", 
+    "🗂️ Histórico de Veículos"
+])
 
-# Resgata a chave da API
+# Chave da API
 api_key = os.environ.get("GEMINI_API_KEY")
 
-# Função de comunicação com a API do Gemini (Declarada no topo para evitar erros)
-def chamar_gemini(contexto_prompt, midia):
+# Função de IA Multimodal
+def chamar_gemini(contexto_prompt, midia=None):
     url = f"https://generativelanguage.googleapis.com/v1/models/gemini-2.5-flash:generateContent?key={api_key}"
     parts = []
-    if midia is not None:
+    if midia:
         bytes_arquivo = midia.read()
         base64_arquivo = base64.b64encode(bytes_arquivo).decode('utf-8')
         parts.append({"inlineData": {"mimeType": midia.type, "data": base64_arquivo}})
@@ -66,115 +64,61 @@ def chamar_gemini(contexto_prompt, midia):
     if response.status_code == 200:
         return response.json()['candidates'][0]['content']['parts'][0]['text']
     else:
-        return f"Erro no servidor do Google (Código {response.status_code}): {response.text}"
-
-# PROMPTS DE ENGENHARIA E ATENDIMENTO
-DIRETRIZ_SUPREMA_TECNICA = """Você é o Engenheiro-Chefe de Fábrica e Mestre de Diagnóstico Avançado. Forneça análises elétricas de falhas, pinagem detalhada de esquemas elétricos se solicitado, e um Guia do Osciloscópio completo (Conexão, tempo/tensão por divisão e sinal esperado). Formate estritamente com os títulos: ### 📋 Dados Técnicos Extraídos, ### ⚡ Análise Elétrica e Lógica de Falhas, ### 🛠️ Mapeamento de Esquema Elétrico & Pinagens, ### 🔬 Guia do Osciloscópio, ### 🔍 Roteiro Prático de Testes, ### 💡 Diagnóstico Provável."""
-DIRETRIZ_SUPREMA_CLIENTE = """Você é o Diretor de Atendimento de uma oficina premium. Traduza o defeito técnico em um laudo comercial transparente, amigável e profissional em tópicos com emojis para o WhatsApp do cliente. Destaque o uso de tecnologia avançada (osciloscópios/manuais de fábrica) para evitar o 'troquismo' de peças."""
+        return f"Erro na API (Status {response.status_code})"
 
 # ==========================================
-# ABA 1: TRABALHO DE PÁTIO (NOVA O.S.)
+# ABA 1: DIAGNÓSTICO E ENGENHARIA
 # ==========================================
 with aba_patio:
-    st.subheader("Abertura de Diagnóstico / O.S.")
-    
-    # Linha com os dados de identificação do veículo
-    col_cli, col_veh, col_plc = st.columns([2, 2, 1])
-    with col_cli:
-        nome_cliente = st.text_input("👤 Nome do Cliente:", placeholder="Ex: João Silva")
-    with col_veh:
-        modelo_veiculo = st.text_input("🚗 Veículo / Motorização:", placeholder="Ex: Golf 1.4 TSI 2016")
-    with col_plc:
-        placa_veiculo = st.text_input("🔢 Placa:", placeholder="ABC-1234").upper().strip()
+    st.subheader("🔧 Diagnóstico de Alta Performance")
+    c1, c2, c3 = st.columns([2, 2, 1])
+    cli_p = c1.text_input("Cliente:", key="cli_p")
+    veh_p = c2.text_input("Veículo:", key="veh_p")
+    plc_p = c3.text_input("Placa:", key="plc_p").upper()
 
-    st.write("---")
+    prompt_p = st.text_area("Descreva o sintoma ou peça o esquema elétrico/ajuste de osciloscópio:")
+    midia_p = st.file_uploader("Envie Foto/Vídeo/Áudio do defeito:", type=["png","jpg","jpeg","mp4","mov","avi","mp3","wav","m4a"])
 
-    # Área de Entrada de Dados do Pátio
-    prompt = st.text_area(
-        "📝 Relato Técnico / Sintomas ou Solicitação de Esquema Elétrico:", 
-        placeholder="Descreva o defeito ou solicite o esquema elétrico e parametrização do osciloscópio aqui...",
-        height=120
-    )
-
-    # Campo para Envio de Arquivos (Fotos, Vídeos ou Áudios)
-    arquivo_enviado = st.file_uploader(
-        "📸 Insira as mídias do pátio (Foto do Scanner, Gráfico do Osciloscópio, etc.):", 
-        type=["png", "jpg", "jpeg", "mp4", "mov", "avi", "mp3", "wav", "m4a", "ogg"]
-    )
-
-    if arquivo_enviado is not None:
-        if arquivo_enviado.type.startswith('image'):
-            st.image(arquivo_enviado, caption="Análise Visual Ativada 🔍", use_container_width=True)
-        elif arquivo_enviado.type.startswith('video'):
-            st.video(arquivo_enviado)
-        elif arquivo_enviado.type.startswith('audio'):
-            st.audio(arquivo_enviado)
-
-    st.write("---")
-    st.write("### 🎛️ Central de Comando")
-
-    col1, col2 = st.columns(2)
-    with col1:
-        botao_tecnico = st.button("🔧 Diagnóstico e Esquema Elétrico", use_container_width=True)
-    with col2:
-        botao_cliente = st.button("💬 Traduzir para Laudo do Cliente (WhatsApp)", use_container_width=True)
-
-    # Execução do Botão Técnico
-    if botao_tecnico and (prompt or arquivo_enviado):
-        if not api_key:
-            st.error("Chave da API não configurada nos Segredos.")
+    if st.button("Executar Análise de Engenharia", use_container_width=True):
+        if not api_key: st.error("API Key ausente.")
         else:
-            with st.spinner("🚀 Consultando Engenharia de Fábrica e Esquemas..."):
-                contexto = f"{DIRETRIZ_SUPREMA_TECNICA}\n\nCarro: {modelo_veiculo}\nRelato: {prompt}"
-                resposta = chamar_gemini(contexto, arquivo_enviado)
-                st.success("Diagnóstico Técnico Gerado com Sucesso!")
-                st.markdown(resposta)
-                if placa_veiculo:
-                    salvar_no_historico(nome_cliente, modelo_veiculo, placa_veiculo, "🔧 Diagnóstico Técnico", prompt, resposta)
-
-    # Execução do Botão Cliente
-    if botao_cliente and (prompt or arquivo_enviado):
-        if not api_key:
-            st.error("Chave da API não configurada nos Segredos.")
-        else:
-            with st.spinner("✍️ Convertendo para linguagem comercial premium..."):
-                contexto = f"{DIRETRIZ_SUPREMA_CLIENTE}\n\nCarro: {modelo_veiculo}\nRelato: {prompt}"
-                resposta = chamar_gemini(contexto, arquivo_enviado)
-                st.success("Laudo Comercial Premium Gerado!")
-                st.info("💡 Cole direto no WhatsApp do cliente:")
-                st.markdown(resposta)
-                st.balloons()
-                if placa_veiculo:
-                    salvar_no_historico(nome_cliente, modelo_veiculo, placa_veiculo, "💬 Laudo Comercial", prompt, resposta)
+            with st.spinner("🚀 Consultando Engenharia de Fábrica..."):
+                diretriz = "Você é Engenheiro-Chefe. Dê diagnóstico, esquema elétrico e parametrização de osciloscópio (Tempo/Tensão/Conexão). Títulos: ### 📋 Dados, ### ⚡ Análise, ### 🛠️ Elétrica, ### 🔬 Osciloscópio, ### 💡 Diagnóstico."
+                res = chamar_gemini(f"{diretriz}\nCarro:{veh_p}\nRelato:{prompt_p}", midia_p)
+                st.markdown(res)
+                if plc_p: salvar_no_historico(cli_p, veh_p, plc_p, "🔧 Diagnóstico", prompt_p, res)
 
 # ==========================================
-# ABA 2: CONSULTA DO HISTÓRICO DE O.S.
+# ABA 2: ORÇAMENTO COMERCIAL PRO
 # ==========================================
-with aba_historico:
-    st.subheader("🗂️ Consultar Histórico do Pátio")
-    busca_placa = st.text_input("🔍 Digite a Placa para buscar os laudos anteriores:", placeholder="Ex: ABC1234").upper().strip()
+with aba_orcamento:
+    st.subheader("💰 Gerador de Orçamento Premium")
+    c1, c2, c3 = st.columns([2, 2, 1])
+    cli_o = c1.text_input("Cliente:", key="cli_o")
+    veh_o = c2.text_input("Veículo:", key="veh_o")
+    plc_o = c3.text_input("Placa:", key="plc_o").upper()
+
+    st.write("---")
+    lista_pecas = st.text_area("Liste as peças e valores (Ex: 4 Velas - 200,00 | Kit Correia - 450,00):")
+    mao_obra = st.number_input("Valor da Mão de Obra (R$):", min_value=0.0, step=50.0)
     
-    lista_os = carregar_historico()
-    
-    if busca_placa:
-        resultados = [os_item for os_item in lista_os if os_item["placa"] == busca_placa]
-        if resultados:
-            st.write(f"### Encontrado(s) {len(resultados)} registro(s) para a placa **{busca_placa}**:")
-            for os_item in reversed(resultados):
-                with st.expander(f"📅 {os_item['data']} - {os_item['veiculo']} ({os_item['tipo']})"):
-                    st.write(f"**Cliente:** {os_item['cliente']}")
-                    st.write(f"**Relato Inicial:** {os_item['relato']}")
-                    st.write("**Laudo Gerado:**")
-                    st.markdown(os_item['resultado'])
+    if st.button("Gerar Orçamento para WhatsApp", use_container_width=True):
+        if not api_key: st.error("API Key ausente.")
         else:
-            st.warning(f"Nenhum diagnóstico encontrado para a placa {busca_placa}.")
-    else:
-        if lista_os:
-            st.write("### Últimos Registros do Pátio:")
-            for os_item in list(reversed(lista_os))[:5]:
-                with st.expander(f"📅 {os_item['data']} - Placa: {os_item['placa']} - {os_item['veiculo']}"):
-                    st.write(f"**Cliente:** {os_item['cliente']}")
-                    st.write(f"**Tipo:** {os_item['tipo']}")
-                    st.write(f"**Relato:** {os_item['relato']}")
-        else:
-            st.info("O banco de dados ainda está vazio. Os próximos diagnósticos que você rodar aparecerão aqui.")
+            with st.spinner("✍️ Formatando Orçamento Comercial..."):
+                contexto_o = f"""
+                Você é Diretor Comercial de uma oficina premium. Transforme esta lista de peças e mão de obra em um orçamento profissional para WhatsApp.
+                DIRETRIZES:
+                1. Organize em tópicos limpos com emojis.
+                2. Explique brevemente o benefício de usar peças de qualidade e a garantia do serviço.
+                3. Calcule o TOTAL GERAL somando tudo.
+                4. Linguagem: Transparente, educada e vendedora.
+                DADOS:
+                Veículo: {veh_o}
+                Peças: {lista_pecas}
+                Mão de Obra: R$ {mao_obra}
+                """
+                res_o = chamar_gemini(contexto_o)
+                st.success("Orçamento Gerado!")
+                st.markdown(res_o)
+                if plc_o:
