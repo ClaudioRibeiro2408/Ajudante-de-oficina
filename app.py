@@ -45,7 +45,7 @@ def salvar_no_historico(cliente, veiculo, placa, tipo, relato, resultado, status
         json.dump(historico, f, ensure_ascii=False, indent=4)
 
 # Função para criar o PDF do Orçamento
-def gerar_pdf_orcamento(dados_oficina, cliente, veiculo, placa, reclamacao, itens, total):
+def generar_pdf_orcamento(dados_oficina, cliente, veiculo, placa, reclamacao, itens, total):
     pdf = FPDF()
     pdf.add_page()
     pdf.set_font("Helvetica", "B", 16)
@@ -156,10 +156,9 @@ with aba_patio:
 with aba_orcamento:
     st.subheader("💰 Construtor de Orçamento Profissional")
     
-    # Configurações permanentes da Oficina (Ajuste com os seus dados reais)
     st.markdown("### 🏢 Dados do Emitente")
     col_of1, col_of2, col_of3 = st.columns([2, 2, 1.5])
-    oficina_nome = col_of1.text_input("Nome da Oficina:", value="Oficina Mecânica Mecânica")
+    oficina_nome = col_of1.text_input("Nome da Oficina:", value="Oficina Mecânica")
     oficina_end = col_of2.text_input("Endereço:", value="Rua Principal, 123 - Centro")
     oficina_tel = col_of3.text_input("Telefone:", value="(45) 99999-9999")
     dados_oficina = {"nome": oficina_nome, "endereco": oficina_end, "telefone": oficina_tel}
@@ -171,11 +170,8 @@ with aba_orcamento:
     veh_o = c2.text_input("Veículo:", key="veh_o")
     plc_o = c3.text_input("Placa:", key="plc_o").upper()
     
-    # Novo Campo: Reclamação do Cliente
-    reclamacao_cliente = st.text_area("📋 Reclamação/Sintoma relatado pelo Cliente na Entrada:", placeholder="Ex: Cliente reclama de barulho metálico na dianteira ao passar em ondulações e luz de injeção piscando.")
-
-    # Novo Campo: Atualização de Status da O.S.
-    status_atual = st.selectbox("📊 Status Inicial do Orçamento:", ["Aguardando Aprovação", "Aprovado", "Cancelado", "Aguardando Peças", "Concluído"])
+    reclamacao_cliente = st.text_area("📋 Reclamação/Sintoma relatado pelo Cliente na Entrada:", placeholder="Ex: Barulho na dianteira ao passar em ondulações.")
+    status_atual = st.selectbox("📊 Status Inicial do Orçamento:", ["Aguardando Orçamento", "Aprovado", "Cancelado", "Aguardando Peças", "Concluído"])
 
     st.write("---")
     tipo_insercao = st.radio("Selecione o tipo de item para adicionar:", ["📦 Peça / Componente", "🔧 Mão de Obra / Serviço"], horizontal=True)
@@ -238,12 +234,10 @@ with aba_orcamento:
 
     st.write("---")
     
-    # Seções de saída: Mensagem de WhatsApp e Botão de Download do PDF
     if st.session_state.itens_orcamento:
         col_pdf, col_wa = st.columns(2)
         
         with col_pdf:
-            # Geração e Download do PDF
             bytes_pdf = generar_pdf_orcamento(dados_oficina, cli_o, veh_o, plc_o, reclamacao_cliente, st.session_state.itens_orcamento, total_acumulado)
             st.download_button(
                 label="📥 Baixar Orçamento em PDF",
@@ -252,13 +246,13 @@ with aba_orcamento:
                 mime="application/pdf",
                 use_container_width=True
             )
-            st.caption("💡 Baixe o arquivo no celular e anexe direto na conversa do WhatsApp do cliente.")
+            st.caption("💡 Guarde o PDF no dispositivo para enviar pelo WhatsApp do cliente.")
             
         with col_wa:
             if st.button("🚀 Formatar Texto de Venda (WhatsApp)", use_container_width=True):
                 with st.spinner("Formatando..."):
                     texto_itens = "".join([f"- {i['tipo']}: {i['descricao']} ({i['quantidade']}) -> R$ {i['valor']:.2f}\n" for i in st.session_state.itens_orcamento])
-                    contexto_o = f"Você é Diretor Comercial de oficina premium. Formate uma mensagem excelente para WhatsApp para o cliente {cli_o} sobre o veículo {veh_o}. Mencione que o laudo detalhado em PDF foi anexo. Inclua a queixa inicial: {reclamacao_cliente}. Itens:\n{texto_itens}\nTotal: R$ {total_acumulado:.2f}"
+                    contexto_o = f"Você é Diretor Comercial. Formate uma mensagem de WhatsApp para o cliente {cli_o} sobre o veículo {veh_o}. Mencione que o PDF detalhado está anexo. Queixa: {reclamacao_cliente}. Itens:\n{texto_itens}\nTotal: R$ {total_acumulado:.2f}"
                     res_o = chamar_gemini(contexto_o)
                     st.success("Texto pronto!")
                     st.markdown(res_o)
@@ -276,16 +270,15 @@ with aba_historico:
         resultados = [i for i in historico if i["placa"] == busca]
         if resultados:
             for item in reversed(resultados):
-                # Exibe o status bem destacado no título do expansor
                 badge_status = f"[{item.get('status', 'Orçamento')}]"
                 with st.expander(f"📅 {item['data']} - {badge_status} {item['tipo']} ({item['veiculo']})"):
                     st.write(f"**Cliente:** {item['cliente']}")
-                    st.write(f"**Queixa/Relato Registrado:** {item['relato']}")
-                    st.write("**Resumo do Atendimento:**")
+                    st.write(f"**Queixa Registrada:** {item['relato']}")
+                    st.write("**Resumo:**")
                     st.markdown(item['resultado'])
         else: st.warning("Nenhum registro para esta placa.")
     elif historico:
-        st.write("Últimos atendimentos gerais no pátio:")
+        st.write("Últimos atendimentos no pátio:")
         for item in list(reversed(historico))[:5]:
             badge_status = f"[{item.get('status', 'Orçamento')}]"
             with st.expander(f"📅 {item['data']} - Placa: {item['placa']} - {badge_status} {item['veiculo']}"):
