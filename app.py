@@ -2,11 +2,12 @@ import streamlit as st
 import json
 import os
 import pandas as pd
+import requests
 
 # Configuração da Página
-st.set_page_config(page_title="Oficina Pro - Gestão & Diagnóstico", layout="wide")
+st.set_page_config(page_title="Oficina Pro - Gestão & IA", layout="wide")
 
-# Funções de Banco de Dados
+# --- FUNÇÕES DE APOIO ---
 def carregar_json(arquivo):
     if os.path.exists(arquivo):
         with open(arquivo, "r", encoding="utf-8") as f:
@@ -18,57 +19,72 @@ def salvar_json(arquivo, dados):
     with open(arquivo, "w", encoding="utf-8") as f:
         json.dump(dados, f, ensure_ascii=False, indent=4)
 
-# Título do Sistema
-st.title("⚙️ Oficina Pro | Gestão e Diagnóstico")
+def chamar_gemini(prompt):
+    api_key = st.secrets.get("GEMINI_API_KEY")
+    if not api_key:
+        return "Erro: Chave API não configurada nos Secrets do Streamlit."
+    
+    url = f"https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash:generateContent?key={api_key}"
+    payload = {"contents": [{"parts": [{"text": prompt}]}]}
+    headers = {'Content-Type': 'application/json'}
+    
+    try:
+        response = requests.post(url, headers=headers, json=payload)
+        if response.status_code == 200:
+            return response.json()['candidates'][0]['content']['parts'][0]['text']
+        else:
+            return f"Erro na API: {response.status_code} - {response.text}"
+    except Exception as e:
+        return f"Erro de conexão: {str(e)}"
 
-# Definição das Abas (Reincluindo o Diagnóstico Técnico)
+# --- INTERFACE ---
+st.title("⚙️ Oficina Pro | Gestão e Diagnóstico IA")
+
 aba1, aba2, aba3, aba4 = st.tabs(["👤 Clientes", "📦 Estoque", "🔧 Diagnóstico Técnico", "📋 Histórico"])
 
 # ABA 1: CLIENTES
 with aba1:
     st.header("Cadastro de Clientes")
-    nome = st.text_input("Nome do Cliente", key="nome_cliente")
-    placa = st.text_input("Placa do Veículo", key="placa_cliente")
-    if st.button("Salvar Cliente"):
-        dados = carregar_json("clientes.json")
-        dados.append({"Nome": nome, "Placa": placa})
-        salvar_json("clientes.json", dados)
-        st.success("Cliente salvo!")
+    with st.form("form_cli"):
+        nome = st.text_input("Nome do Cliente")
+        placa = st.text_input("Placa do Veículo")
+        if st.form_submit_button("Salvar Cliente"):
+            dados = carregar_json("clientes.json")
+            dados.append({"Nome": nome, "Placa": placa})
+            salvar_json("clientes.json", dados)
+            st.success("Salvo!")
     st.table(pd.DataFrame(carregar_json("clientes.json")))
 
 # ABA 2: ESTOQUE
 with aba2:
     st.header("Almoxarifado")
-    item = st.text_input("Nome da Peça", key="peca_nome")
-    preco = st.number_input("Preço R$", value=0.0, key="peca_preco")
-    if st.button("Salvar Peça"):
-        dados = carregar_json("estoque.json")
-        dados.append({"Peça": item, "Preço": preco})
-        salvar_json("estoque.json", dados)
-        st.success("Peça salva!")
+    with st.form("form_estoque"):
+        item = st.text_input("Nome da Peça")
+        preco = st.number_input("Preço R$", value=0.0)
+        if st.form_submit_button("Salvar Peça"):
+            dados = carregar_json("estoque.json")
+            dados.append({"Peça": item, "Preço": preco})
+            salvar_json("estoque.json", dados)
+            st.rerun()
     st.table(pd.DataFrame(carregar_json("estoque.json")))
 
-# ABA 3: DIAGNÓSTICO TÉCNICO (O que tinha sumido)
+# ABA 3: DIAGNÓSTICO COM IA
 with aba3:
-    st.header("🔧 Diagnóstico Técnico")
-    st.write("Insira os dados do veículo e o problema para a análise técnica.")
+    st.header("🔧 Diagnóstico Técnico Inteligente")
+    veiculo = st.text_input("Veículo/Modelo")
+    problema = st.text_area("Descreva o sintoma ou falha")
     
-    veiculo_diag = st.text_input("Veículo/Modelo")
-    problema_diag = st.text_area("Descrição da Falha ou Sintomas")
-    
-    if st.button("Executar Diagnóstico"):
-        # Aqui ficará a lógica de análise do Gemini
-        st.info(f"Analisando falha em {veiculo_diag}...")
-        st.warning("Funcionalidade de diagnóstico integrada. Insira as observações técnicas.")
-    
-    # Campo para salvar o diagnóstico no histórico
-    if st.button("Registrar no Histórico"):
-        dados_diag = carregar_json("historico.json")
-        dados_diag.append({"Veículo": veiculo_diag, "Problema": problema_diag, "Status": "Diagnosticado"})
-        salvar_json("historico.json", dados_diag)
-        st.success("Diagnóstico registrado no histórico!")
+    if st.button("Buscar Diagnóstico IA"):
+        if veiculo and problema:
+            with st.spinner("Consultando base de conhecimento técnico..."):
+                prompt = f"O mecânico está diagnosticando um {veiculo}. O problema relatado é: {problema}. Liste as 3 causas mais prováveis e os procedimentos de teste sugeridos de forma técnica e objetiva."
+                resultado = chamar_gemini(prompt)
+                st.markdown("### 💡 Resultado da Análise:")
+                st.write(resultado)
+        else:
+            st.error("Preencha o veículo e o problema para a IA analisar.")
 
 # ABA 4: HISTÓRICO
 with aba4:
     st.header("📋 Histórico Geral")
-    st.table(pd.DataFrame(carregar_json("historico.json")))
+    st.info("Aqui ficam registradas as manutenções anteriores.")
