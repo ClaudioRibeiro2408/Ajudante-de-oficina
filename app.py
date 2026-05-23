@@ -13,14 +13,17 @@ st.set_page_config(
     layout="centered"
 )
 
-# Nome do arquivo de banco de dados
+# Nomes dos arquivos de banco de dados
 ARQUIVO_BANCO = "historico_os.json"
+ARQUIVO_CLIENTES = "clientes_veiculos.json"
 
 # Inicializa a lista de itens do orçamento na memória do navegador
 if "itens_orcamento" not in st.session_state:
     st.session_state.itens_orcamento = []
 
-# Funções de Banco de Dados
+# ==========================================
+# FUNÇÕES DE BANCO DE DADOS (JSON)
+# ==========================================
 def carregar_historico():
     if os.path.exists(ARQUIVO_BANCO):
         with open(ARQUIVO_BANCO, "r", encoding="utf-8") as f:
@@ -44,7 +47,34 @@ def salvar_no_historico(cliente, veiculo, placa, tipo, relato, resultado, status
     with open(ARQUIVO_BANCO, "w", encoding="utf-8") as f:
         json.dump(historico, f, ensure_ascii=False, indent=4)
 
-# Função para criar o PDF do Orçamento
+def carregar_clientes():
+    if os.path.exists(ARQUIVO_CLIENTES):
+        with open(ARQUIVO_CLIENTES, "r", encoding="utf-8") as f:
+            try: return json.load(f)
+            except: return []
+    return []
+
+def salvar_cliente(nome, telefone, placa, marca, modelo, ano, motorizacao):
+    clientes = carregar_clientes()
+    # Verifica se a placa já existe para não duplicar, se existir substitui os dados
+    clientes = [c for c in clientes if c["placa"] != placa.upper().strip()]
+    
+    novo_cadastro = {
+        "nome": nome.strip(),
+        "telefone": telefone.strip(),
+        "placa": placa.upper().strip(),
+        "marca": marca.strip(),
+        "modelo": modelo.strip(),
+        "ano": ano.strip(),
+        "motorizacao": motorizacao.strip()
+    }
+    clientes.append(novo_cadastro)
+    with open(ARQUIVO_CLIENTES, "w", encoding="utf-8") as f:
+        json.dump(clientes, f, ensure_ascii=False, indent=4)
+
+# ==========================================
+# FUNÇÃO GERADORA DE PDF
+# ==========================================
 def generar_pdf_orcamento(dados_oficina, cliente, veiculo, placa, reclamacao, itens, total):
     pdf = FPDF()
     pdf.add_page()
@@ -57,11 +87,10 @@ def generar_pdf_orcamento(dados_oficina, cliente, veiculo, placa, reclamacao, it
     pdf.cell(0, 6, f"Telefone: {dados_oficina['telefone']}", ln=True, align="C")
     pdf.ln(10)
     
-    # Linha divisória
     pdf.line(10, pdf.get_y(), 200, pdf.get_y())
     pdf.ln(5)
     
-    # Dados do Cliente e Veículo
+    # Dados do Atendimento
     pdf.set_font("Helvetica", "B", 12)
     pdf.cell(0, 8, "DADOS DO ATENDIMENTO / ORÇAMENTO", ln=True)
     pdf.set_font("Helvetica", "", 10)
@@ -71,14 +100,14 @@ def generar_pdf_orcamento(dados_oficina, cliente, veiculo, placa, reclamacao, it
     pdf.cell(95, 6, f"Placa: {placa.upper()}", ln=True)
     pdf.ln(4)
     
-    # Reclamação do Cliente
+    # Reclamação
     pdf.set_font("Helvetica", "B", 10)
     pdf.cell(0, 6, "Reclamação Relatada pelo Cliente:", ln=True)
     pdf.set_font("Helvetica", "I", 10)
     pdf.multi_cell(0, 5, reclamacao if reclamacao else "Não informada.")
     pdf.ln(6)
     
-    # Tabela de Itens
+    # Tabela
     pdf.set_font("Helvetica", "B", 11)
     pdf.cell(110, 8, "Descrição do Item / Serviço", border=1, ln=False)
     pdf.cell(40, 8, "Quantidade", border=1, ln=False, align="C")
@@ -101,17 +130,16 @@ def generar_pdf_orcamento(dados_oficina, cliente, veiculo, placa, reclamacao, it
 st.title("🚀 Oficina Inteligente")
 st.write("---")
 
-# Definição das 3 Abas
-aba_patio, aba_orcamento, aba_historico = st.tabs([
+# Definição das 4 Abas do Sistema
+aba_patio, aba_orcamento, aba_clientes, aba_historico = st.tabs([
     "🔧 Diagnóstico Técnico", 
-    "💰 Gerar Orçamento", 
-    "🗂️ Histórico & Status"
+    "💰 Gerar Orçamento",
+    "🗂️ Clientes & Carros",
+    "📊 Histórico & Status"
 ])
 
-# Chave da API
 api_key = os.environ.get("GEMINI_API_KEY")
 
-# Função de IA
 def chamar_gemini(contexto_prompt, midia=None):
     url = f"https://generativelanguage.googleapis.com/v1/models/gemini-2.5-flash:generateContent?key={api_key}"
     parts = []
@@ -133,11 +161,30 @@ def chamar_gemini(contexto_prompt, midia=None):
 # ==========================================
 with aba_patio:
     st.subheader("🔧 Diagnóstico de Alta Performance")
-    c1, c2, c3 = st.columns([2, 2, 1])
-    cli_p = c1.text_input("Cliente:", key="cli_p")
-    veh_p = c2.text_input("Veículo:", key="veh_p")
-    plc_p = c3.text_input("Placa:", key="plc_p").upper()
+    
+    lista_cadastrados = carregar_clientes()
+    modo_p = st.radio("Identificação do Veículo no Pátio:", ["Buscar Cliente Cadastrado", "Digitar Manualmente"], horizontal=True, key="modo_p")
+    
+    cli_p, veh_p, plc_p = "", "", ""
+    
+    if modo_p == "Buscar Cliente Cadastrado" and lista_cadastrados:
+        opcoes_placa = [f"{c['placa']} - {c['nome']} ({c['modelo']})" for c in lista_cadastrados]
+        selecionado = st.selectbox("Selecione o Veículo:", opcoes_placa, key="sel_p")
+        idx = opcoes_placa.index(selecionado)
+        dados_c = lista_cadastrados[idx]
+        cli_p = dados_c["nome"]
+        veh_p = f"{dados_c['marca']} {dados_c['modelo']} {dados_c['motorizacao']} {dados_c['ano']}"
+        plc_p = dados_c["placa"]
+        st.info(f"🚗 **Selecionado:** {veh_p} | **Cliente:** {cli_p}")
+    else:
+        if modo_p == "Buscar Cliente Cadastrado":
+            st.warning("Nenhum cliente cadastrado ainda. Digite manualmente abaixo.")
+        c1, c2, c3 = st.columns([2, 2, 1])
+        cli_p = c1.text_input("Cliente:", key="cli_p_man")
+        veh_p = c2.text_input("Veículo (Marca/Mod/Motor):", key="veh_p_man")
+        plc_p = c3.text_input("Placa:", key="plc_p_man").upper()
 
+    st.write("---")
     prompt_p = st.text_area("Descreva o sintoma ou peça o esquema elétrico/ajuste de osciloscópio:")
     midia_p = st.file_uploader("Envie Foto/Vídeo/Áudio do defeito:", type=["png","jpg","jpeg","mp4","mov","avi","mp3","wav","m4a"])
 
@@ -145,13 +192,13 @@ with aba_patio:
         if not api_key: st.error("API Key ausente.")
         else:
             with st.spinner("🚀 Consultando Engenharia..."):
-                diretriz = "Você é Engenheiro-Chefe. Dê diagnóstico, esquema elétrico e parametrização de osciloscópio."
+                diretriz = "Você é Engenheiro-Chefe especialista. Dê diagnóstico técnico, esquema elétrico e parametrização de osciloscópio."
                 res = chamar_gemini(f"{diretriz}\nCarro:{veh_p}\nRelato:{prompt_p}", midia_p)
                 st.markdown(res)
                 if plc_p: salvar_no_historico(cli_p, veh_p, plc_p, "🔧 Diagnóstico", prompt_p, res)
 
 # ==========================================
-# ABA 2: ORÇAMENTO COMERCIAL E PDF
+# ABA 2: ORÇAMENTO COMERCIAL E LINK DINÂMICO
 # ==========================================
 with aba_orcamento:
     st.subheader("💰 Construtor de Orçamento Profissional")
@@ -159,18 +206,37 @@ with aba_orcamento:
     st.markdown("### 🏢 Dados do Emitente")
     col_of1, col_of2, col_of3 = st.columns([2, 2, 1.5])
     oficina_nome = col_of1.text_input("Nome da Oficina:", value="Oficina Mecânica")
-    oficina_end = col_of2.text_input("Endereço:", value="Rua Principal, 123 - Centro")
+    oficina_end = col_of2.text_input("Endereço:", value="Rua Principal, 123")
     oficina_tel = col_of3.text_input("Telefone:", value="(45) 99999-9999")
     dados_oficina = {"nome": oficina_nome, "endereco": oficina_end, "telefone": oficina_tel}
 
     st.write("---")
-    st.markdown("### 🚗 Dados do Atendimento & Triagem")
-    c1, c2, c3 = st.columns([2, 2, 1])
-    cli_o = c1.text_input("Cliente:", key="cli_o")
-    veh_o = c2.text_input("Veículo:", key="veh_o")
-    plc_o = c3.text_input("Placa:", key="plc_o").upper()
+    st.markdown("### 🚗 Dados do Atendimento & Vínculo")
     
-    reclamacao_cliente = st.text_area("📋 Reclamação/Sintoma relatado pelo Cliente na Entrada:", placeholder="Ex: Barulho na dianteira ao passar em ondulações.")
+    lista_cadastrados = carregar_clientes()
+    modo_o = st.radio("Como preencher os dados do veículo:", ["Buscar Cliente Cadastrado", "Digitar Manualmente"], horizontal=True, key="modo_o")
+    
+    cli_o, veh_o, plc_o = "", "", ""
+    
+    if modo_o == "Buscar Cliente Cadastrado" and lista_cadastrados:
+        opcoes_placa = [f"{c['placa']} - {c['nome']} ({c['modelo']})" for c in lista_cadastrados]
+        selecionado_o = st.selectbox("Selecione o Veículo pela Placa:", opcoes_placa, key="sel_o")
+        idx_o = opcoes_placa.index(selecionado_o)
+        dados_co = lista_cadastrados[idx_o]
+        cli_o = dados_co["nome"]
+        veh_o = f"{dados_co['marca']} {dados_co['modelo']} {dados_co['motorizacao']} {dados_co['ano']}"
+        plc_o = dados_co["placa"]
+        st.success(f"🔗 **Dados Vinculados com Sucesso!** Carro: {veh_o} | Cliente: {cli_o}")
+    else:
+        if modo_o == "Buscar Cliente Cadastrado":
+            st.warning("Nenhum cliente no banco de dados. Digite manualmente abaixo.")
+        c1, c2, c3 = st.columns([2, 2, 1])
+        cli_o = c1.text_input("Cliente:", key="cli_o_man")
+        veh_o = c2.text_input("Veículo (Marca/Modelo/Motor):", key="veh_o_man")
+        plc_o = c3.text_input("Placa:", key="plc_o_man").upper()
+    
+    st.write("---")
+    reclamacao_cliente = st.text_area("📋 Reclamação/Sintoma relatado pelo Cliente na Entrada:", placeholder="Ex: Barulho na suspensão ao passar em irregularidades.")
     status_atual = st.selectbox("📊 Status Inicial do Orçamento:", ["Aguardando Orçamento", "Aprovado", "Cancelado", "Aguardando Peças", "Concluído"])
 
     st.write("---")
@@ -246,23 +312,64 @@ with aba_orcamento:
                 mime="application/pdf",
                 use_container_width=True
             )
-            st.caption("💡 Guarde o PDF no dispositivo para enviar pelo WhatsApp do cliente.")
             
         with col_wa:
             if st.button("🚀 Formatar Texto de Venda (WhatsApp)", use_container_width=True):
                 with st.spinner("Formatando..."):
                     texto_itens = "".join([f"- {i['tipo']}: {i['descricao']} ({i['quantidade']}) -> R$ {i['valor']:.2f}\n" for i in st.session_state.itens_orcamento])
-                    contexto_o = f"Você é Diretor Comercial. Formate uma mensagem de WhatsApp para o cliente {cli_o} sobre o veículo {veh_o}. Mencione que o PDF detalhado está anexo. Queixa: {reclamacao_cliente}. Itens:\n{texto_itens}\nTotal: R$ {total_acumulado:.2f}"
+                    contexto_o = f"Você é Diretor Comercial de oficina mecânica. Formate uma mensagem excelente para o cliente {cli_o} sobre o veículo {veh_o}. Queixa: {reclamacao_cliente}. Itens:\n{texto_itens}\nTotal: R$ {total_acumulado:.2f}"
                     res_o = chamar_gemini(contexto_o)
                     st.success("Texto pronto!")
                     st.markdown(res_o)
                     if plc_o: salvar_no_historico(cli_o, veh_o, plc_o, "💰 Orçamento", reclamacao_cliente, res_o, status_atual)
 
 # ==========================================
-# ABA 3: HISTÓRICO DE VEÍCULOS E STATUS
+# NOVA ABA 3: CADASTRO DE CLIENTES E VEÍCULOS
+# ==========================================
+with aba_clientes:
+    st.subheader("🗂️ Cadastro Central de Clientes e Veículos")
+    
+    with st.form("form_cadastro_cliente", clear_on_submit=True):
+        st.markdown("#### 👤 Dados do Proprietário")
+        c_nome = st.text_input("Nome Completo do Cliente:")
+        c_tel = st.text_input("Telefone/WhatsApp:")
+        
+        st.markdown("#### 🚗 Dados da Máquina")
+        cc1, cc2, cc3 = st.columns([1, 2, 1])
+        c_placa = cc1.text_input("Placa do Veículo:").upper().strip()
+        c_marca = cc2.text_input("Marca (Ex: Volkswagen, Chevrolet):")
+        c_modelo = cc3.text_input("Modelo (Ex: Golf, Onix, Up):")
+        
+        cc4, cc5 = st.columns(2)
+        c_motor = cc4.text_input("Motorização (Ex: 1.0 TSI, 1.4 TSI, 1.6 MSI):")
+        c_ano = cc5.text_input("Ano de Fabricação/Modelo (Ex: 2018/2019):")
+        
+        btn_cadastrar = st.form_submit_button("💾 Salvar Cadastro no Banco de Dados", use_container_width=True)
+        
+        if btn_cadastrar:
+            if c_nome and c_placa and c_modelo:
+                salvar_cliente(c_nome, c_tel, c_placa, c_marca, c_modelo, c_ano, c_motor)
+                st.success(f"✅ Sucesso! Cliente '{c_nome}' e veículo de placa '{c_placa}' foram blindados no sistema!")
+            else:
+                st.error("Por favor, preencha pelo menos os campos essenciais: Nome, Placa e Modelo.")
+
+    st.write("---")
+    st.markdown("#### 🔍 Lista de Clientes e Frotas Cadastradas")
+    banco_clientes = carregar_clientes()
+    if banco_clientes:
+        for c in reversed(banco_clientes):
+            with st.expander(f"🚗 {c['placa']} - {c['nome']} ({c['modelo']})"):
+                st.write(f"**Telefone:** {c['telefone']}")
+                st.write(f"**Veículo:** {c['marca']} {c['modelo']} - Ano: {c['ano']}")
+                st.write(f"**Motorização:** {c['motorizacao']}")
+    else:
+        st.info("Nenhum cliente registrado na base de dados.")
+
+# ==========================================
+# ABA 4: HISTÓRICO DE VEÍCULOS E STATUS
 # ==========================================
 with aba_historico:
-    st.subheader("🗂️ Consulta de Histórico & Status")
+    st.subheader("📊 Consulta de Histórico & Status das O.S.")
     busca = st.text_input("🔍 Digite a Placa para buscar:", key="busca_plc").upper().strip()
     historico = carregar_historico()
     
