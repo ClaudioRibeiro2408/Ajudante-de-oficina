@@ -43,17 +43,45 @@ st.title("⚙️ Oficina Pro | Gestão e Diagnóstico IA")
 
 aba1, aba2, aba3, aba4 = st.tabs(["👤 Clientes", "📦 Estoque", "🔧 Diagnóstico Técnico", "📋 Histórico"])
 
+# ABA 1: CLIENTES
 with aba1:
-    st.header("Cadastro de Clientes")
-    with st.form("form_cli"):
-        nome = st.text_input("Nome do Cliente")
-        placa = st.text_input("Placa do Veículo")
+    st.header("👤 Cadastro de Clientes")
+    
+    with st.form("form_cli", clear_on_submit=True):
+        col1, col2 = st.columns(2)
+        with col1:
+            nome = st.text_input("Nome do Cliente")
+            telefone = st.text_input("Telefone")
+        with col2:
+            marca = st.text_input("Marca")
+            modelo = st.text_input("Modelo do Veículo")
+            motor = st.text_input("Motorização")
+            
         if st.form_submit_button("Salvar Cliente"):
-            dados = carregar_json("clientes.json")
-            dados.append({"Nome": nome, "Placa": placa})
-            salvar_json("clientes.json", dados)
-            st.success("Salvo!")
-    st.table(pd.DataFrame(carregar_json("clientes.json")))
+            if nome and telefone:
+                # Carrega o histórico atual
+                dados = carregar_json("clientes.json")
+                # Adiciona o novo cliente
+                novo_cliente = {
+                    "Nome": nome,
+                    "Telefone": telefone,
+                    "Marca": marca,
+                    "Modelo": modelo,
+                    "Motor": motor
+                }
+                dados.append(novo_cliente)
+                # Salva
+                salvar_json("clientes.json", dados)
+                st.success(f"Cliente {nome} salvo com sucesso!")
+            else:
+                st.error("Nome e Telefone são obrigatórios.")
+
+    st.subheader("Clientes Cadastrados")
+    lista_clientes = carregar_json("clientes.json")
+    if lista_clientes:
+        st.table(pd.DataFrame(lista_clientes))
+    else:
+        st.info("Nenhum cliente cadastrado ainda.")
 
 with aba2:
     st.header("Almoxarifado")
