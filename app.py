@@ -2,116 +2,123 @@ import streamlit as st
 import requests
 import json
 import os
-import mimetypes
+import base64
 
 # Configuração da página
 st.set_page_config(page_title="Oficina Inteligente", layout="centered")
 
 st.title("🚀 Oficina Inteligente")
-st.subheader("Sistema de Diagnóstico Visual e por Texto")
+st.subheader("Sistema de Diagnóstico Técnico e Laudos para Clientes")
 st.write("---")
 
-# Resgata a chave da API
-api_key = os.environ.get("GOOGLE_API_KEY") or os.environ.get("GEMINI_API_KEY")
-if not api_key:
-    try:
-        from google.colab import userdata
-        api_key = userdata.get('GEMINI_API_KEY')
-    except:
-        pass
+# Resgata a chave da API das variáveis de ambiente ou segredos do Streamlit
+api_key = os.environ.get("GEMINI_API_KEY")
 
 # Campo de texto estilo WhatsApp
 prompt = st.text_area(
     "O que aconteceu com o veículo?", 
-    placeholder="Ex: Gol 1.0 TSI falhando. Veja a foto do scanner ou o vídeo do motor...",
+    placeholder="Ex: Onix 1.4 2018 acendendo luz de injeção, código P0420 no scanner...",
     height=100
 )
 
-# NOVO: Campo para enviar Fotos ou Vídeos direto do celular/computador
+# Campo para enviar Fotos ou Vídeos
 arquivo_enviado = st.file_uploader(
     "📸 Envie uma foto do scanner, peça com defeito ou um vídeo curto do sintoma:", 
     type=["png", "jpg", "jpeg", "mp4", "mov", "avi"]
 )
 
-# Mostra uma prévia do arquivo na tela se for imagem
+# Mostra uma prévia do arquivo na tela se for imagem ou vídeo
 if arquivo_enviado is not None:
     if arquivo_enviado.type.startswith('image'):
         st.image(arquivo_enviado, caption="Arquivo carregado com sucesso!", use_container_width=True)
     elif arquivo_enviado.type.startswith('video'):
         st.video(arquivo_enviado)
 
-botao = st.button("🔧 Processar Diagnóstico Avançado", use_container_width=True)
+st.write("### 🎛️ O que você deseja gerar?")
 
-if botao and (prompt or arquivo_enviado):
-    if not api_key:
-        st.error("Chave da API não encontrada no ambiente do Colab.")
+# Cria duas colunas para os botões ficarem lado a lado
+col1, col2 = st.columns(2)
+
+with col1:
+    botao_tecnico = st.button("🔧 Diagnóstico Técnico", use_container_width=True)
+
+with col2:
+    botao_cliente = st.button("💬 Laudo para o Cliente", use_container_width=True)
+
+# Função para disparar a API do Gemini
+def chamar_gemini(contexto_prompt, midia):
+    url = f"https://generativelanguage.googleapis.com/v1/models/gemini-2.5-flash:generateContent?key={api_key}"
+    parts = []
+    
+    if midia is not None:
+        bytes_arquivo = midia.read()
+        base64_arquivo = base64.b64encode(bytes_arquivo).decode('utf-8')
+        parts.append({
+            "inlineData": {
+                "mimeType": midia.type,
+                "data": base64_arquivo
+            }
+        })
+        # Reseta o ponteiro do arquivo para caso precise ler de novo
+        midia.seek(0)
+        
+    parts.append({"text": contexto_prompt})
+    
+    payload = {"contents": [{"parts": parts}]}
+    headers = {'Content-Type': 'application/json'}
+    
+    response = requests.post(url, headers=headers, data=json.dumps(payload))
+    if response.status_code == 200:
+        dados_retorno = response.json()
+        return dados_retorno['candidates'][0]['content']['parts'][0]['text']
     else:
-        with st.spinner("🤖 O Mecânico Master está analisando o texto e a mídia... Aguarde..."):
-            try:
-                # URL para o modelo robusto atualizado
-                url = f"https://generativelanguage.googleapis.com/v1/models/gemini-2.5-flash:generateContent?key={api_key}"
-                
-                contexto = f"""
-                Você é um Engenheiro Automotivo Especialista e Consultor Técnico de Oficina Mecânica de Alta Performance.
-                Analise o relato do mecânico e QUALQUER imagem ou vídeo enviado (como telas de scanner, osciloscópio, peças ou comportamento do motor).
-                Devolva uma resposta formatada exatamente com os seguintes tópicos em Markdown:
-                
-                ### 📋 Dados Identificados
-                * **Veículo/Motor:** (Identifique o veículo, motorização ou marcas se visíveis ou citadas)
-                * **Evidência Visual:** (Descreva o que você identificou na foto ou vídeo enviado, ex: códigos na tela do scanner, peça danificada, etc. Se não houver mídia, diga 'Apenas texto fornecido')
-                
-                ### ⚡ Análise Técnica de Falhas
-                * (Liste os códigos de erro DTC ou anomalias físicas encontradas e explique o significado técnico detalhado de cada um)
-                
-                ### 🔍 Próximos Testes Recomendados (O que testar no pátio?)
-                * (Cite de 3 a 4 testes mecânicos ou eletrônicos práticos com valores de referência usando multímetro, osciloscópio ou manômetro para isolar a causa raiz. Seja direto, de mecânico para mecânico)
-                
-                ### 💡 Diagnóstico Provável & Causa Raiz
-                * (Qual o componente ou sistema tem a maior probabilidade de estar causando o problema técnico relatado/visto?)
-                
-                Relato do mecânico: {prompt if prompt else 'O mecânico enviou apenas a mídia para análise.'}
-                """
-                
-                # Monta a estrutura de peças do pacote (Parts)
-                parts = []
-                
-                # Se tiver arquivo (Foto/Vídeo), converte para enviar na API
-                if arquivo_enviado is not None:
-                    bytes_arquivo = arquivo_enviado.read()
-                    import base64
-                    base64_arquivo = base64.b64encode(bytes_arquivo).decode('utf-8')
-                    
-                    parts.append({
-                        "inlineData": {
-                            "mimeType": arquivo_enviado.type,
-                            "data": base64_arquivo
-                        }
-                    })
-                
-                # Adiciona o texto de instruções e o prompt
-                parts.append({"text": contexto})
-                
-                payload = {
-                    "contents": [{
-                        "parts": parts
-                    }]
-                }
-                headers = {'Content-Type': 'application/json'}
-                
-                # Envia o sinal completo (Mídia + Texto) pro Google
-                response = requests.post(url, headers=headers, data=json.dumps(payload))
-                
-                if response.status_code == 200:
-                    dados_retorno = response.json()
-                    texto_ia = dados_retorno['candidates'][0]['content']['parts'][0]['text']
-                    st.success("Análise Multimodal Concluída!")
-                    st.markdown(texto_ia)
-                    st.balloons()
-                else:
-                    st.error(f"Erro no servidor do Google (Código {response.status_code}): {response.text}")
-                
-            except Exception as e:
-                st.error(f"Erro de conexão no pátio digital: {e}")
+        return f"Erro no servidor do Google (Código {response.status_code}): {response.text}"
+
+# Ação se clicar no botão TÉCNICO
+if botao_tecnico and (prompt or arquivo_enviado):
+    if not api_key:
+        st.error("Chave da API não encontrada nos Segredos do Streamlit.")
+    else:
+        with st.spinner("🤖 O Mecânico Master está analisando os dados técnicos..."):
+            contexto = f"""
+            Você é um Engenheiro Automotivo Especialista e Consultor Técnico de Oficina Mecânica de Alta Performance.
+            Analise o relato e qualquer imagem fornecida e devolva uma resposta técnica estruturada exatamente com os títulos:
+            ### 📋 Dados Identificados
+            ### ⚡ Análise Técnica de Falhas
+            ### 🔍 Próximos Testes Recomendados (O que testar no pátio?)
+            ### 💡 Diagnóstico Provável & Causa Raiz
             
-elif botao:
-    st.error("Por favor, digite um relato ou envie uma foto/vídeo antes de clicar em processar.")
+            Seja direto, use termos técnicos exatos (osciloscópio, multímetro, pressões). De mecânico para mecânico.
+            Relato: {prompt if prompt else 'Mídia enviada para análise.'}
+            """
+            resposta = chamar_gemini(contexto, arquivo_enviado)
+            st.success("Análise Técnica Concluída!")
+            st.markdown(resposta)
+
+# Ação se clicar no botão CLIENTE (WhatsApp)
+if botao_cliente and (prompt or arquivo_enviado):
+    if not api_key:
+        st.error("Chave da API não encontrada nos Segredos do Streamlit.")
+    else:
+        with st.spinner("✍️ Traduzindo o diagnóstico para uma linguagem simples e profissional..."):
+            contexto = f"""
+            Você é um Consultor de Atendimento de uma oficina mecânica premium, conhecido pela transparência e excelente comunicação.
+            Sua missão é pegar o relato do problema e as imagens fornecidas (como fotos de peças ruins ou códigos de erro) e gerar um texto amigável, claro, didático e altamente profissional para ser enviado diretamente no WhatsApp do cliente.
+            
+            DIRETRIZES DO TEXTO:
+            1. Use uma linguagem simples. Em vez de termos como 'DTC P0420', diga 'uma falha registrada no sistema de controle de emissões'. Em vez de 'sonda lambda travada', explique que 'o sensor que mede os gases não está trabalhando como deveria'.
+            2. Seja cordial e use tópicos limpos com emojis adequados para facilitar a leitura no celular.
+            3. Explique brevemente o risco de não consertar (ex: aumento de consumo de combustível, perda de potência ou danos a outras peças mais caras).
+            4. NÃO invente valores de orçamento ou preços de peças. Termine o texto com uma frase deixando claro que a equipe técnica está finalizando o levantamento de peças para passar os valores exatos.
+            
+            Estruture a resposta com um visual limpo e uma saudação inicial amigável (ex: 'Olá! Tudo bem? Aqui é da equipe técnica da oficina...').
+            Relato do problema: {prompt if prompt else 'O mecânico enviou uma foto do defeito para avaliação.'}
+            """
+            resposta = chamar_gemini(contexto, arquivo_enviado)
+            st.success("Laudo para WhatsApp Gerado com Sucesso!")
+            st.info("💡 Dica: Você pode copiar o texto abaixo e colar direto no WhatsApp do seu cliente.")
+            st.markdown(resposta)
+            st.balloons()
+            
+elif (botao_tecnico or botao_cliente):
+    st.error("Por favor, digite um relato ou envie uma foto/vídeo antes de processar.")
