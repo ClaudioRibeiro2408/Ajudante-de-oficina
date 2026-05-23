@@ -65,22 +65,50 @@ with aba1:
                 st.error("Nome e Telefone obrigatórios.")
     st.table(pd.DataFrame(carregar_json("clientes.json")))
 
-# ABA 2: ORÇAMENTO (Substituindo o Estoque)
+# ABA 2: ORÇAMENTO
 with aba2:
-    st.header("💰 Gerador de Orçamentos")
+    st.header("💰 Orçamento Técnico")
+    
     with st.form("form_orc", clear_on_submit=True):
-        cliente_orc = st.text_input("Nome do Cliente")
-        servico = st.text_area("Descrição dos Serviços")
-        valor = st.number_input("Valor Total (R$)", min_value=0.0, format="%.2f")
+        col1, col2 = st.columns(2)
         
-        if st.form_submit_button("Salvar Orçamento"):
-            dados = carregar_json("orcamentos.json")
-            dados.append({"Cliente": cliente_orc, "Serviço": servico, "Valor": valor})
-            salvar_json("orcamentos.json", dados)
-            st.success("Orçamento salvo com sucesso!")
+        with col1:
+            peca = st.text_input("Peça")
+            valor_pago = st.number_input("Valor Pago (Custo) R$", min_value=0.0, format="%.2f")
+            valor_venda = st.number_input("Valor de Venda R$", min_value=0.0, format="%.2f")
+            qtd_medida = st.number_input("Quantidade (Unidade ou Litros)", min_value=0.0)
             
-    st.subheader("Histórico de Orçamentos")
-    st.table(pd.DataFrame(carregar_json("orcamentos.json")))
+        with col2:
+            posicao = st.selectbox("Posição", ["Nenhuma", "Dianteira Direita", "Dianteira Esquerda", "Traseira Direita", "Traseira Esquerda"])
+            horas_mao_obra = st.number_input("Horas de Mão de Obra", min_value=0.0)
+            valor_hora = st.number_input("Valor da Hora Técnica (R$)", value=100.0)
+        
+        if st.form_submit_button("Adicionar ao Orçamento"):
+            # Cálculos
+            lucro_valor = valor_venda - valor_pago
+            lucro_porc = (lucro_valor / valor_pago * 100) if valor_pago > 0 else 0
+            total_mao_obra = horas_mao_obra * valor_hora
+            
+            dados = carregar_json("orcamentos.json")
+            novo_item = {
+                "Peça": peca,
+                "Custo": valor_pago,
+                "Venda": valor_venda,
+                "Lucro %": round(lucro_porc, 2),
+                "Qtd": qtd_medida,
+                "Posição": posicao,
+                "Mão de Obra Total": total_mao_obra
+            }
+            dados.append(novo_item)
+            salvar_json("orcamentos.json", dados)
+            st.success("Item adicionado ao orçamento!")
+
+    st.subheader("Itens no Orçamento")
+    lista_orc = carregar_json("orcamentos.json")
+    if lista_orc:
+        df_orc = pd.DataFrame(lista_orc)
+        st.table(df_orc)
+        st.metric("TOTAL DO ORÇAMENTO", f"R$ {df_orc['Venda'].sum() + df_orc['Mão de Obra Total'].sum():.2f}")
 
 # ABA 3: DIAGNÓSTICO
 with aba3:
