@@ -24,9 +24,7 @@ def chamar_gemini(prompt):
     if not api_key:
         return "Erro: Chave API não configurada."
     
-    # URL CORRETA baseada na sua lista de modelos disponíveis
     url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash:generateContent?key={api_key}"
-    
     payload = {"contents": [{"parts": [{"text": prompt}]}]}
     
     try:
@@ -41,75 +39,61 @@ def chamar_gemini(prompt):
 # --- INTERFACE ---
 st.title("⚙️ Oficina Pro | Gestão e Diagnóstico IA")
 
-aba1, aba2, aba3, aba4 = st.tabs(["👤 Clientes", "📦 Estoque", "🔧 Diagnóstico Técnico", "📋 Histórico"])
+# Agora temos 4 abas novamente, mas a segunda é 'Orçamento'
+aba1, aba2, aba3, aba4 = st.tabs(["👤 Clientes", "💰 Orçamento", "🔧 Diagnóstico", "📋 Histórico"])
 
 # ABA 1: CLIENTES
 with aba1:
     st.header("👤 Cadastro de Clientes")
-    
     with st.form("form_cli", clear_on_submit=True):
         col1, col2 = st.columns(2)
         with col1:
             nome = st.text_input("Nome do Cliente")
             telefone = st.text_input("Telefone")
         with col2:
-            marca = st.text_input("Marca")
-            modelo = st.text_input("Modelo do Veículo")
+            marca = st.text_input("Marca do Veículo")
+            modelo = st.text_input("Modelo")
             motor = st.text_input("Motorização")
             
         if st.form_submit_button("Salvar Cliente"):
             if nome and telefone:
-                # Carrega o histórico atual
                 dados = carregar_json("clientes.json")
-                # Adiciona o novo cliente
-                novo_cliente = {
-                    "Nome": nome,
-                    "Telefone": telefone,
-                    "Marca": marca,
-                    "Modelo": modelo,
-                    "Motor": motor
-                }
-                dados.append(novo_cliente)
-                # Salva
+                dados.append({"Nome": nome, "Telefone": telefone, "Marca": marca, "Modelo": modelo, "Motor": motor})
                 salvar_json("clientes.json", dados)
-                st.success(f"Cliente {nome} salvo com sucesso!")
+                st.success(f"Cliente {nome} salvo!")
             else:
-                st.error("Nome e Telefone são obrigatórios.")
+                st.error("Nome e Telefone obrigatórios.")
+    st.table(pd.DataFrame(carregar_json("clientes.json")))
 
-    st.subheader("Clientes Cadastrados")
-    lista_clientes = carregar_json("clientes.json")
-    if lista_clientes:
-        st.table(pd.DataFrame(lista_clientes))
-    else:
-        st.info("Nenhum cliente cadastrado ainda.")
-
+# ABA 2: ORÇAMENTO (Substituindo o Estoque)
 with aba2:
-    st.header("Almoxarifado")
-    with st.form("form_estoque"):
-        item = st.text_input("Nome da Peça")
-        preco = st.number_input("Preço R$", value=0.0)
-        if st.form_submit_button("Salvar Peça"):
-            dados = carregar_json("estoque.json")
-            dados.append({"Peça": item, "Preço": preco})
-            salvar_json("estoque.json", dados)
-            st.rerun()
-    st.table(pd.DataFrame(carregar_json("estoque.json")))
+    st.header("💰 Gerador de Orçamentos")
+    with st.form("form_orc", clear_on_submit=True):
+        cliente_orc = st.text_input("Nome do Cliente")
+        servico = st.text_area("Descrição dos Serviços")
+        valor = st.number_input("Valor Total (R$)", min_value=0.0, format="%.2f")
+        
+        if st.form_submit_button("Salvar Orçamento"):
+            dados = carregar_json("orcamentos.json")
+            dados.append({"Cliente": cliente_orc, "Serviço": servico, "Valor": valor})
+            salvar_json("orcamentos.json", dados)
+            st.success("Orçamento salvo com sucesso!")
+            
+    st.subheader("Histórico de Orçamentos")
+    st.table(pd.DataFrame(carregar_json("orcamentos.json")))
 
+# ABA 3: DIAGNÓSTICO
 with aba3:
-    st.header("🔧 Diagnóstico Técnico Inteligente")
+    st.header("🔧 Diagnóstico Técnico IA")
     veiculo = st.text_input("Veículo/Modelo")
-    problema = st.text_area("Descreva o sintoma ou falha")
-    
-    if st.button("Buscar Diagnóstico IA"):
+    problema = st.text_area("Sintoma ou falha")
+    if st.button("Buscar Diagnóstico"):
         if veiculo and problema:
-            with st.spinner("Analisando com Gemini 3.5..."):
-                prompt = f"O mecânico está diagnosticando um {veiculo}. O problema é: {problema}. Liste 3 causas prováveis e testes técnicos."
-                resultado = chamar_gemini(prompt)
-                st.markdown("### 💡 Resultado da Análise:")
-                st.write(resultado)
-        else:
-            st.error("Preencha veículo e problema.")
+            resultado = chamar_gemini(f"Diagnóstico para {veiculo}: {problema}")
+            st.markdown("### 💡 Resultado:")
+            st.write(resultado)
 
+# ABA 4: HISTÓRICO
 with aba4:
     st.header("📋 Histórico Geral")
-    st.info("Sistema ativo.")
+    st.info("Sistema ativo e operante.")
