@@ -12,7 +12,7 @@ st.set_page_config(
 )
 
 st.title("🚀 Oficina Inteligente")
-st.subheader("Sistema Unificado de Diagnóstico Multimodal (Texto, Imagem, Vídeo e Áudio)")
+st.subheader("Central Unificada de Diagnóstico, Laudos e Esquemas Elétricos")
 st.write("---")
 
 # Resgata a chave da API
@@ -20,14 +20,14 @@ api_key = os.environ.get("GEMINI_API_KEY")
 
 # Área de Entrada de Dados do Pátio
 prompt = st.text_area(
-    "📝 Relato Técnico / Sintomas do Veículo:", 
-    placeholder="Ex: Polo 1.0 TSI com falha P0301 em marcha lenta. Sinal do transdutor de compressão parece avançado...",
-    height=100
+    "📝 Relato Técnico / Sintomas ou Solicitação de Esquema Elétrico:", 
+    placeholder="Ex 1: Fox 1.6 MSI falha na borboleta. Preciso do esquema elétrico do corpo de borboleta e pinagem do módulo.\nEx 2: Nivus 1.0 TSI com erro de sensor de fase, mandando foto do osciloscópio...",
+    height=120
 )
 
-# Upload de Arquivos Expandido (Aceita Imagens, Vídeos e Áudios de ruídos de motor)
+# Upload de Arquivos Expandido
 arquivo_enviado = st.file_uploader(
-    "📸 🎥 🎵 Insira as mídias do pátio (Foto do Scanner/Osciloscópio, Vídeo do Sintoma ou Áudio do Ruído):", 
+    "📸 Insira as mídias do pátio (Foto do Scanner, Gráfico do Osciloscópio, etc.):", 
     type=["png", "jpg", "jpeg", "mp4", "mov", "avi", "mp3", "wav", "m4a", "ogg"]
 )
 
@@ -37,21 +37,21 @@ if arquivo_enviado is not None:
         st.image(arquivo_enviado, caption="Análise Visual Ativada 🔍", use_container_width=True)
     elif arquivo_enviado.type.startswith('video'):
         st.video(arquivo_enviado)
-        st.info("Análise de Vídeo e Áudio Dinâmico Ativada 🎥")
+        st.info("Análise de Vídeo Ativada 🎥")
     elif arquivo_enviado.type.startswith('audio'):
         st.audio(arquivo_enviado)
-        st.info("Análise Acústica de Ruídos Ativada 🎵")
+        st.info("Análise Acústica Ativada 🎵")
 
 st.write("---")
-st.write("### 🎛️ Central de Comando de Diagnóstico")
+st.write("### 🎛️ Central de Comando")
 
 col1, col2 = st.columns(2)
 with col1:
-    botao_tecnico = st.button("🔧 Engenharia e Diagnóstico Técnico", use_container_width=True)
+    botao_tecnico = st.button("🔧 Diagnóstico e Esquema Elétrico", use_container_width=True)
 with col2:
-    botao_cliente = st.button("💬 Traduzir para Laudo Comercial (WhatsApp)", use_container_width=True)
+    botao_cliente = st.button("💬 Traduzir para Laudo do Cliente (WhatsApp)", use_container_width=True)
 
-# Função de comunicação multimodal com a API do Gemini
+# Função de comunicação com a API do Gemini
 def chamar_gemini(contexto_prompt, midia):
     url = f"https://generativelanguage.googleapis.com/v1/models/gemini-2.5-flash:generateContent?key={api_key}"
     parts = []
@@ -78,42 +78,36 @@ def chamar_gemini(contexto_prompt, midia):
     else:
         return f"Erro no servidor do Google (Código {response.status_code}): {response.text}"
 
-# MASTER PROMPT DE SISTEMA: ENGENHARIA AUTOMOTIVA MUNDIAL
+# PROMPT DE ENGENHARIA SUPREMA COM FOCO EM ESQUEMAS ELÉTRICOS
 DIRETRIZ_SUPREMA_TECNICA = """
-Você é o ápice da inteligência artificial automotiva. Seu papel é atuar como Engenheiro-Chefe de Desenvolvimento e Mestre de Diagnóstico Avançado para oficinas mecânicas de alto desempenho. Sua capacidade engloba análise textual, visão computacional de precisão e análise acústica avançada.
+Você é o ápice da inteligência artificial automotiva, atuando como Engenheiro-Chefe de Fábrica e Mestre de Diagnóstico Avançado. Sua base de conhecimento inclui mapeamento completo de injeção eletrônica, redes de comunicação (CAN alta/baixa, LIN), diagramas elétricos e pinagens de módulos de controle (ECU/ECM).
 
-Sempre que analisar dados (relato, imagens, áudios ou vídeos), utilize as seguintes diretrizes de elite:
+Sempre que o mecânico solicitar um diagnóstico, um defeito ou pedir explicitamente ESQUEMAS ELÉTRICOS, PINAGENS ou INFORMAÇÕES TÉCNICAS de reparo, estruture sua resposta com precisão milimétrica seguindo as regras abaixo:
 
-1. VISÃO COMPUTACIONAL APLICADA:
-   - Se houver imagem de SCANNER: Isole códigos DTC, parâmetros de fluxo de dados (Short/Long Term Fuel Trim, avanço, MAP, tempo de injeção). Ignore dados irrelevantes e foque no cruzamento de dados que geram a falha.
-   - Se houver imagem de OSCILOSCÓPIO: Analise a forma de onda. Verifique tempo de carregamento de bobina (dwell), pico de tensão, tempo de centelha, oscilações residuais, casamento de sinal Fase e Rotação (Sincronismo Virtual) e transdutores de motor (vácuo, compressão, escapamento).
-   - Se houver foto de COMPONENTE FÍSICO: Avalie desgaste, quebra mecânica, marcas de superaquecimento, vazamentos, carbonização (velas, válvulas).
+1. MAPEAMENTO ELÉTRICO E PINAGEM (SEMPRE QUE SOLICITADO OU RELEVANTE PARA O DEFEITO):
+   - Descreva detalhadamente a pinagem do componente citado (ex: Sensor MAP, Corpo de Borboleta, Sonda Lambda, Pedor do Acelerador).
+   - Indique a função de cada fio/pino: Alimentação (+5V, +12V), Aterramento de Sensores (Massa), Sinal de Retorno, Linha de Comunicação ou Sinal PWM.
+   - Forneça os valores de referência para medição com multímetro (tensão esperada com chave ligada e motor funcionando) e com osciloscópio.
 
-2. ANÁLISE ACÚSTICA (ÁUDIOS/VÍDEOS):
-   - Avalie o ruído mecânico enviado. Diferencie com base na frequência e padrão harmônico ruídos de batida de saia de pistão, biela, tucho hidráulico descarrilado, rolamentos de acessórios corrompidos, detonação (pré-ignição) ou assobios provocados por entradas de ar falso (coletor rachado ou membrana da válvula PCV furada).
+2. INFORMAÇÕES TÉCNICAS DE MECÂNICA E ENGENHARIA:
+   - Forneça dados de torque de aperto fundamentais (se correlacionados ao componente, ex: cabeçote, velas, sensores).
+   - Indique folgas nominais, diagramas de sincronismo virtual (Fase e Rotação) e procedimentos de ajuste/aprendizado via scanner pós-troca.
+   - Detalhe especificações de fluidos e pressões nominais (ex: linha de combustível da família VW EA211 TSI/MSI e multimarcas).
 
-3. BANCO DE CONHECIMENTO CRÍTICO DE ENGENHARIA:
-   - Linha VW EA211 (1.0 TSI, 1.4 TSI, 1.6 MSI): Alerte imediatamente sobre problemas endêmicos: carbonização severa das válvulas de admissão por injeção direta, folga/travamento no braço acionador da wastegate eletrônica do turbo, quebra ou perda de torque do variador de fase, rachaduras ocultas na carcaça plástica da bomba d'água e pressões nominais fora do padrão (Bomba Alta: 50-200 bar / Bomba Baixa: 4-6 bar). MAP em marcha lenta aquecido deve cravar entre 300-400 mbar.
-   - Ecossistema Multimarcas (GM Ecotec, Fiat Firefly, Ford 3 Cilindros): Monitore estratégias de falhas múltiplas de combustão (P0300) por variações de combustível, desgaste prematuro de correia banhada a óleo ou problemas de aterramento eletrônico.
+3. DIAGNÓSTICO INTEGRADO (TEXTO E MÍDIA):
+   - Cruze fotos de scanners (DTCs), oscilogramas ou ruídos de áudio/vídeo com os diagramas elétricos para determinar se a falha é no chicote (curto ao positivo, curto à massa, circuito aberto), no sensor ou na própria ECU.
 
-Estruture sua resposta estritamente com a formatação profissional abaixo:
-### 📋 Dados Técnicos Extraídos (Mídia e Texto)
-### ⚡ Correlação de Dados e Análise de Falhas (O que está acontecendo nos bastidores do motor)
-### 🔍 Roteiro de Testes Recomendado (Ordem lógica: o que medir com Osciloscópio, Multímetro ou Transdutores, indicando pinagem e valores de referência exatos)
-### 💡 Diagnóstico Provável & Causa Raiz Isolada
+Formate sua resposta técnica rigorosamente com estes títulos explicativos:
+### 📋 Dados Técnicos Extraídos & Parâmetros do Veículo
+### ⚡ Análise Elétrica e Lógica de Falhas
+### 🛠️ Mapeamento de Esquema Elétrico & Pinagens (Alimentação, Sinal e Massa)
+### 🔍 Roteiro Prático de Testes (Passo a passo no carro com Osciloscópio/Multímetro)
+### 💡 Diagnóstico Provável & Causa Raiz
 """
 
 DIRETRIZ_SUPREMA_CLIENTE = """
-Você é o Diretor de Atendimento e Relacionamento de uma oficina mecânica premium reconhecida nacionalmente por sua honestidade, transparência e profissionalismo impecável.
-Sua missão é traduzir termos da engenharia pesada enviados em formato de texto, fotos de peças quebradas ou telas de scanner em um laudo de altíssimo padrão comercial para o WhatsApp do cliente.
-
-DIRETRIZES DE COMUNICAÇÃO:
-1. TRADUÇÃO TÉCNICA: Nunca use siglas assustadoras sem explicar. Em vez de 'Falha no sensor MAF', diga 'uma irregularidade medida pelo sensor que calcula o ar que entra no motor'. Em vez de 'Carbonização de Válvulas', explique que 'resíduos naturais do combustível formaram uma crosta nas peças internas, bloqueando a respiração correta do motor'.
-2. TRANSPARÊNCIA E VALOR: Mostre que o diagnóstico foi feito com ferramentas de engenharia avançada (como computadores de diagnóstico e osciloscópios), agregando valor à mão de obra da oficina.
-3. CONCIENTIZAÇÃO: Explique o risco associado caso o reparo não seja feito (como quebra de componentes mais caros, consumo excessivo de combustível ou riscos à segurança).
-4. FORMATO WHATSAPP: Use mensagens estruturadas com espaçamento limpo, tópicos bem organizados e emojis moderados que transmitam seriedade e modernidade. Não invente preços de autopeças ou mão de obra.
-
-Inicie com uma saudação personalizada e de extremo respeito. Termine se colocando à disposição enquanto a equipe finaliza o levantamento de valores com os fornecedores.
+Você é o Diretor de Atendimento de uma oficina mecânica premium. Traduza o defeito ou necessidade de reparo técnico em um laudo comercial transparente, amigável e profissional para o WhatsApp do cliente.
+Destaque que a oficina está usando diagramas elétricos de fábrica e equipamentos avançados para garantir que o carro seja consertado sem tentativas e erros. Use tópicos limpos e emojis. Não mencione códigos de pinos ou valores técnicos difíceis para o cliente. Termine dizendo que a equipe está finalizando a cotação.
 """
 
 # Execução do Botão Técnico
@@ -121,10 +115,10 @@ if botao_tecnico and (prompt or arquivo_enviado):
     if not api_key:
         st.error("Chave da API não configurada nos Segredos do Streamlit.")
     else:
-        with st.spinner("🚀 Engenharia Automotiva processando dados em tempo real..."):
-            contexto = f"{DIRETRIZ_SUPREMA_TECNICA}\n\nEntrada do Mecânico:\nTexto: {prompt}\nMídia: Processar anexo enviado."
+        with st.spinner("🚀 Consultando Engenharia de Fábrica e Esquemas Elétricos..."):
+            contexto = f"{DIRETRIZ_SUPREMA_TECNICA}\n\nSolicitação do Mecânico:\nTexto: {prompt}\nMídia: Analisar anexo se houver."
             resposta = chamar_gemini(contexto, arquivo_enviado)
-            st.success("Diagnóstico Técnico Concluído com Alta Precisão!")
+            st.success("Informações Técnicas e Esquema Elétrico Gerados!")
             st.markdown(resposta)
 
 # Execução do Botão Cliente
@@ -132,8 +126,8 @@ if botao_cliente and (prompt or arquivo_enviado):
     if not api_key:
         st.error("Chave da API não configurada nos Segredos do Streamlit.")
     else:
-        with st.spinner("✍️ Convertendo engenharia pesada em linguagem comercial premium..."):
-            contexto = f"{DIRETRIZ_SUPREMA_CLIENTE}\n\nDados da Oficina:\nTexto: {prompt}\nMídia: Processar anexo enviado."
+        with st.spinner("✍️ Convertendo para linguagem comercial premium..."):
+            contexto = f"{DIRETRIZ_SUPREMA_CLIENTE}\n\nDados da Oficina:\nTexto: {prompt}\nMídia: Analisar anexo se houver."
             resposta = chamar_gemini(contexto, arquivo_enviado)
             st.success("Laudo Comercial Premium Gerado!")
             st.info("💡 Pronto para cópia! Cole direto no WhatsApp do cliente:")
@@ -141,4 +135,4 @@ if botao_cliente and (prompt or arquivo_enviado):
             st.balloons()
 
 elif (botao_tecnico or botao_cliente):
-    st.error("Atenção: Insira um relato em texto ou carregue uma mídia (foto/vídeo/áudio) antes de iniciar a análise.")
+    st.error("Atenção: Digite o veículo/sintoma ou peça o esquema elétrico no campo de texto antes de clicar.")
