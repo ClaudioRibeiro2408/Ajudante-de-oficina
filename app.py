@@ -1,71 +1,57 @@
 import streamlit as st
-import pandas as pd
 import json
 import os
+import pandas as pd
 
-# Configuração Base
+# Configuração simples
 st.set_page_config(page_title="Oficina Pro", layout="wide")
 
-# Estilização limpa (evita conflitos de CSS)
-st.markdown("""
-    <style>
-    .main { background-color: #f5f7f9; }
-    h1 { color: #1e293b; }
-    .stButton>button { width: 100%; border-radius: 5px; }
-    </style>
-""", unsafe_allow_html=True)
-
-# Funções de Dados Simplificadas
-def carregar(arq):
-    if os.path.exists(arq):
-        with open(arq, "r", encoding="utf-8") as f:
-            return json.load(f)
+# Funções de Banco de Dados (as mesmas que funcionavam)
+def carregar_json(arquivo):
+    if os.path.exists(arquivo):
+        with open(arquivo, "r", encoding="utf-8") as f:
+            try: return json.load(f)
+            except: return []
     return []
 
-def salvar(arq, dados):
-    with open(arq, "w", encoding="utf-8") as f:
+def salvar_json(arquivo, dados):
+    with open(arquivo, "w", encoding="utf-8") as f:
         json.dump(dados, f, ensure_ascii=False, indent=4)
 
 # Título
-st.title("⚙️ Oficina Pro | Gestão Simplificada")
+st.title("⚙️ Sistema da Oficina")
 
-# Colunas principais para organizar a tela
-col_form, col_lista = st.columns([1, 2])
+# Abas
+tab1, tab2, tab3, tab4 = st.tabs(["👥 Clientes", "📦 Almoxarifado", "💰 Orçamentos", "📋 Histórico"])
 
-with col_form:
-    st.subheader("➕ Novo Cliente")
+# ABA CLIENTES
+with tab1:
+    st.header("Cadastro de Clientes")
     nome = st.text_input("Nome do Cliente")
     placa = st.text_input("Placa do Veículo")
-    if st.button("💾 Adicionar Cliente"):
-        if nome and placa:
-            dados = carregar("clientes.json")
-            dados.append({"Nome": nome, "Placa": placa.upper()})
-            salvar("clientes.json", dados)
-            st.rerun()
+    if st.button("Salvar Cliente"):
+        dados = carregar_json("clientes.json")
+        dados.append({"Nome": nome, "Placa": placa})
+        salvar_json("clientes.json", dados)
+        st.success("Cliente salvo com sucesso!")
+    
+    st.table(pd.DataFrame(carregar_json("clientes.json")))
 
-with col_lista:
-    st.subheader("📋 Clientes Cadastrados")
-    dados = carregar("clientes.json")
-    if dados:
-        st.dataframe(pd.DataFrame(dados), use_container_width=True)
-    else:
-        st.info("Nenhum cliente cadastrado.")
-
-st.divider()
-
-# Área de Estoque
-st.subheader("📦 Estoque de Peças")
-col_est1, col_est2 = st.columns([1, 3])
-with col_est1:
-    peca = st.text_input("Peça")
+# ABA ALMOXARIFADO
+with tab2:
+    st.header("Almoxarifado")
+    item = st.text_input("Nome da Peça")
     preco = st.number_input("Preço R$", value=0.0)
-    if st.button("➕ Cadastrar Peça"):
-        dados = carregar("estoque.json")
-        dados.append({"Peça": peca, "Preço": preco})
-        salvar("estoque.json", dados)
-        st.rerun()
+    if st.button("Salvar Peça"):
+        dados = carregar_json("estoque.json")
+        dados.append({"Peça": item, "Preço": preco})
+        salvar_json("estoque.json", dados)
+        st.success("Peça salva!")
+    
+    st.table(pd.DataFrame(carregar_json("estoque.json")))
 
-with col_est2:
-    dados_est = carregar("estoque.json")
-    if dados_est:
-        st.dataframe(pd.DataFrame(dados_est), use_container_width=True)
+# ABA ORÇAMENTOS E HISTÓRICO
+with tab3:
+    st.write("Em breve: Gerador de Orçamentos")
+with tab4:
+    st.write("Em breve: Histórico de Serviços")
