@@ -20,11 +20,12 @@ def salvar_json(arquivo, dados):
         json.dump(dados, f, ensure_ascii=False, indent=4)
 
 def chamar_gemini(prompt):
+    # Acessa a chave do Secrets
     api_key = st.secrets.get("GEMINI_API_KEY")
     if not api_key:
-        return "Erro: Chave API (GEMINI_API_KEY) não configurada nos Secrets."
+        return "Erro: A chave API (GEMINI_API_KEY) não foi encontrada nos Secrets do Streamlit."
     
-    # URL para o modelo gemini-pro (Mais compatível e estável)
+    # URL usando o modelo gemini-pro (mais estável)
     url = f"https://generativelanguage.googleapis.com/v1/models/gemini-pro:generateContent?key={api_key}"
     
     payload = {"contents": [{"parts": [{"text": prompt}]}]}
@@ -33,9 +34,10 @@ def chamar_gemini(prompt):
         response = requests.post(url, json=payload)
         if response.status_code == 200:
             data = response.json()
+            # Extrai o texto da resposta da IA
             return data['candidates'][0]['content']['parts'][0]['text']
         else:
-            return f"Erro na API ({response.status_code}): Verifique sua chave ou limite de uso."
+            return f"Erro na API ({response.status_code}): Verifique sua chave no painel de Secrets."
     except Exception as e:
         return f"Erro de conexão: {str(e)}"
 
@@ -70,16 +72,26 @@ with aba2:
             st.rerun()
     st.table(pd.DataFrame(carregar_json("estoque.json")))
 
-# ABA 3: DIAGNÓSTICO
+# ABA 3: DIAGNÓSTICO COM IA
 with aba3:
     st.header("🔧 Diagnóstico Técnico Inteligente")
-    veiculo = st.text_input("Veículo/Modelo", placeholder="Ex: Onix 1.4 2018")
-    problema = st.text_area("Descreva o sintoma ou falha", placeholder="Ex: Carro falhando ao acelerar em baixa rotação")
+    veiculo = st.text_input("Veículo/Modelo")
+    problema = st.text_area("Descreva o sintoma ou falha")
     
     if st.button("Buscar Diagnóstico IA"):
         if veiculo and problema:
-            with st.spinner("Analisando sintomas com IA..."):
+            with st.spinner("Analisando com a IA..."):
                 prompt = f"O mecânico está diagnosticando um {veiculo}. O problema relatado é: {problema}. Liste as 3 causas mais prováveis e os procedimentos de teste sugeridos."
+                
+                # A função agora retorna apenas o texto da IA
                 resultado = chamar_gemini(prompt)
+                
                 st.markdown("### 💡 Resultado da Análise:")
-                st
+                st.write(resultado)
+        else:
+            st.error("Preencha os campos para a IA analisar.")
+
+# ABA 4: HISTÓRICO
+with aba4:
+    st.header("📋 Histórico Geral")
+    st.info("Sistema operante.")
