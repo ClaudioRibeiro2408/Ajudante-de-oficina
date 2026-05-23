@@ -50,6 +50,28 @@ aba_patio, aba_historico = st.tabs(["🔧 Nova Ordem de Serviço", "🗂️ Hist
 # Resgata a chave da API
 api_key = os.environ.get("GEMINI_API_KEY")
 
+# Função de comunicação com a API do Gemini (Declarada no topo para evitar erros)
+def chamar_gemini(contexto_prompt, midia):
+    url = f"https://generativelanguage.googleapis.com/v1/models/gemini-2.5-flash:generateContent?key={api_key}"
+    parts = []
+    if midia is not None:
+        bytes_arquivo = midia.read()
+        base64_arquivo = base64.b64encode(bytes_arquivo).decode('utf-8')
+        parts.append({"inlineData": {"mimeType": midia.type, "data": base64_arquivo}})
+        midia.seek(0)
+    parts.append({"text": contexto_prompt})
+    payload = {"contents": [{"parts": parts}]}
+    headers = {'Content-Type': 'application/json'}
+    response = requests.post(url, headers=headers, data=json.dumps(payload))
+    if response.status_code == 200:
+        return response.json()['candidates'][0]['content']['parts'][0]['text']
+    else:
+        return f"Erro no servidor do Google (Código {response.status_code}): {response.text}"
+
+# PROMPTS DE ENGENHARIA E ATENDIMENTO
+DIRETRIZ_SUPREMA_TECNICA = """Você é o Engenheiro-Chefe de Fábrica e Mestre de Diagnóstico Avançado. Forneça análises elétricas de falhas, pinagem detalhada de esquemas elétricos se solicitado, e um Guia do Osciloscópio completo (Conexão, tempo/tensão por divisão e sinal esperado). Formate estritamente com os títulos: ### 📋 Dados Técnicos Extraídos, ### ⚡ Análise Elétrica e Lógica de Falhas, ### 🛠️ Mapeamento de Esquema Elétrico & Pinagens, ### 🔬 Guia do Osciloscópio, ### 🔍 Roteiro Prático de Testes, ### 💡 Diagnóstico Provável."""
+DIRETRIZ_SUPREMA_CLIENTE = """Você é o Diretor de Atendimento de uma oficina premium. Traduza o defeito técnico em um laudo comercial transparente, amigável e profissional em tópicos com emojis para o WhatsApp do cliente. Destaque o uso de tecnologia avançada (osciloscópios/manuais de fábrica) para evitar o 'troquismo' de peças."""
+
 # ==========================================
 # ABA 1: TRABALHO DE PÁTIO (NOVA O.S.)
 # ==========================================
@@ -97,28 +119,6 @@ with aba_patio:
     with col2:
         botao_cliente = st.button("💬 Traduzir para Laudo do Cliente (WhatsApp)", use_container_width=True)
 
-    # Função de comunicação com a API do Gemini
-    def chamar_gemini(contexto_prompt, midia):
-        url = f"https://generativelanguage.googleapis.com/v1/models/gemini-2.5-flash:generateContent?key={api_key}"
-        parts = []
-        if midia is not None:
-            bytes_arquivo = midia.read()
-            base64_arquivo = base64.b64encode(bytes_arquivo).decode('utf-8')
-            parts.append({"inlineData": {"mimeType": midia.type, "data": base64_arquivo}})
-            midia.seek(0)
-        parts.append({"text": contexto_prompt})
-        payload = {"contents": [{"parts": parts}]}
-        headers = {'Content-Type': 'application/json'}
-        response = requests.post(url, headers=headers, data=json.dumps(payload))
-        if response.status_code == 200:
-            return response.json()['candidates'][0]['content']['parts'][0]['text']
-        else:
-            return f"Erro no servidor do Google (Código {response.status_code}): {response.text}"
-
-    # PROMPTS DE ENGENHARIA E ATENDIMENTO
-    DIRETRIZ_SUPREMA_TECNICA = """Você é o Engenheiro-Chefe de Fábrica e Mestre de Diagnóstico Avançado. Forneça análises elétricas de falhas, pinagem detalhada de esquemas elétricos se solicitado, e um Guia do Osciloscópio completo (Conexão, tempo/tensão por divisão e sinal esperado). Formate estritamente com os títulos: ### 📋 Dados Técnicos Extraídos, ### ⚡ Análise Elétrica e Lógica de Falhas, ### 🛠️ Mapeamento de Esquema Elétrico & Pinagens, ### 🔬 Guia do Osciloscópio, ### 🔍 Roteiro Prático de Testes, ### 💡 Diagnóstico Provável."""
-    DIRETRIZ_SUPREMA_CLIENTE = """Você é o Diretor de Atendimento de uma oficina premium. Traduza o defeito técnico em um laudo comercial transparente, amigável e profissional em tópicos com emojis para o WhatsApp do cliente. Destaque o uso de tecnologia avançada (osciloscópios/manuais de fábrica) para evitar o 'troquismo' de peças."""
-
     # Execução do Botão Técnico
     if botao_tecnico and (prompt or arquivo_enviado):
         if not api_key:
@@ -126,4 +126,55 @@ with aba_patio:
         else:
             with st.spinner("🚀 Consultando Engenharia de Fábrica e Esquemas..."):
                 contexto = f"{DIRETRIZ_SUPREMA_TECNICA}\n\nCarro: {modelo_veiculo}\nRelato: {prompt}"
-                resposta = chamar_gemini(contexto,
+                resposta = chamar_gemini(contexto, arquivo_enviado)
+                st.success("Diagnóstico Técnico Gerado com Sucesso!")
+                st.markdown(resposta)
+                if placa_veiculo:
+                    salvar_no_historico(nome_cliente, modelo_veiculo, placa_veiculo, "🔧 Diagnóstico Técnico", prompt, resposta)
+
+    # Execução do Botão Cliente
+    if botao_cliente and (prompt or arquivo_enviado):
+        if not api_key:
+            st.error("Chave da API não configurada nos Segredos.")
+        else:
+            with st.spinner("✍️ Convertendo para linguagem comercial premium..."):
+                contexto = f"{DIRETRIZ_SUPREMA_CLIENTE}\n\nCarro: {modelo_veiculo}\nRelato: {prompt}"
+                resposta = chamar_gemini(contexto, arquivo_enviado)
+                st.success("Laudo Comercial Premium Gerado!")
+                st.info("💡 Cole direto no WhatsApp do cliente:")
+                st.markdown(resposta)
+                st.balloons()
+                if placa_veiculo:
+                    salvar_no_historico(nome_cliente, modelo_veiculo, placa_veiculo, "💬 Laudo Comercial", prompt, resposta)
+
+# ==========================================
+# ABA 2: CONSULTA DO HISTÓRICO DE O.S.
+# ==========================================
+with aba_historico:
+    st.subheader("🗂️ Consultar Histórico do Pátio")
+    busca_placa = st.text_input("🔍 Digite a Placa para buscar os laudos anteriores:", placeholder="Ex: ABC1234").upper().strip()
+    
+    lista_os = carregar_historico()
+    
+    if busca_placa:
+        resultados = [os_item for os_item in lista_os if os_item["placa"] == busca_placa]
+        if resultados:
+            st.write(f"### Encontrado(s) {len(resultados)} registro(s) para a placa **{busca_placa}**:")
+            for os_item in reversed(resultados):
+                with st.expander(f"📅 {os_item['data']} - {os_item['veiculo']} ({os_item['tipo']})"):
+                    st.write(f"**Cliente:** {os_item['cliente']}")
+                    st.write(f"**Relato Inicial:** {os_item['relato']}")
+                    st.write("**Laudo Gerado:**")
+                    st.markdown(os_item['resultado'])
+        else:
+            st.warning(f"Nenhum diagnóstico encontrado para a placa {busca_placa}.")
+    else:
+        if lista_os:
+            st.write("### Últimos Registros do Pátio:")
+            for os_item in list(reversed(lista_os))[:5]:
+                with st.expander(f"📅 {os_item['data']} - Placa: {os_item['placa']} - {os_item['veiculo']}"):
+                    st.write(f"**Cliente:** {os_item['cliente']}")
+                    st.write(f"**Tipo:** {os_item['tipo']}")
+                    st.write(f"**Relato:** {os_item['relato']}")
+        else:
+            st.info("O banco de dados ainda está vazio. Os próximos diagnósticos que você rodar aparecerão aqui.")
