@@ -58,4 +58,4 @@ def atualizar_estoque_item(descricao_item, qtd_usada):
 # 3. INTERFACE E ABAS
 # ==========================================
 config_salva = carregar_json(ARQUIVO_CONFIG)
-st.markdown(f"# ⚙
+st.markdown(f"# ⚙ {config_salva.get('nome', 'Oficina Inteligente')}")
