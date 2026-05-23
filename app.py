@@ -39,7 +39,6 @@ def chamar_gemini(prompt):
 # --- INTERFACE ---
 st.title("⚙️ Oficina Pro | Gestão e Diagnóstico IA")
 
-# Agora temos 4 abas novamente, mas a segunda é 'Orçamento'
 aba1, aba2, aba3, aba4 = st.tabs(["👤 Clientes", "💰 Orçamento", "🔧 Diagnóstico", "📋 Histórico"])
 
 # ABA 1: CLIENTES
@@ -66,68 +65,16 @@ with aba1:
     st.table(pd.DataFrame(carregar_json("clientes.json")))
 
 # ABA 2: ORÇAMENTO
-# ABA 2: ORÇAMENTO
 with aba2:
     st.header("💰 Orçamento Técnico")
-    
     with st.form("form_orc", clear_on_submit=True):
         col1, col2 = st.columns(2)
-        
         with col1:
             peca = st.text_input("Peça")
             valor_pago = st.number_input("Valor Pago (Custo) R$", min_value=0.0, format="%.2f")
             valor_venda = st.number_input("Valor de Venda R$", min_value=0.0, format="%.2f")
             qtd_medida = st.number_input("Quantidade (Unidade ou Litros)", min_value=0.0)
-            
         with col2:
             eixo = st.selectbox("Eixo", ["Nenhum", "Dianteira", "Traseira"])
             lado = st.selectbox("Lado", ["Nenhum", "Direito", "Esquerdo"])
-            # Mantemos a lógica de horas no código, mas chamamos o campo de "Mão de Obra"
-            horas = st.number_input("Mão de Obra (Horas)", min_value=0.0)
-            valor_hora = st.number_input("Valor da Hora Técnica (R$)", value=100.0)
-        
-        if st.form_submit_button("Adicionar ao Orçamento"):
-            # Cálculos
-            lucro_valor = valor_venda - valor_pago
-            lucro_porc = (lucro_valor / valor_pago * 100) if valor_pago > 0 else 0
-            total_mo = horas * valor_hora # Cálculo interno
-            
-            dados = carregar_json("orcamentos.json")
-            novo_item = {
-                "Peça": peca,
-                "Custo": valor_pago,
-                "Venda": valor_venda,
-                "Lucro %": round(lucro_porc, 2),
-                "Qtd": qtd_medida,
-                "Eixo": eixo,
-                "Lado": lado,
-                "Mão de Obra": total_mo # Nome exibido como "Mão de Obra"
-            }
-            dados.append(novo_item)
-            salvar_json("orcamentos.json", dados)
-            st.success("Item adicionado!")
-
-    st.subheader("Itens no Orçamento")
-    lista_orc = carregar_json("orcamentos.json")
-    if lista_orc:
-        df_orc = pd.DataFrame(lista_orc)
-        # Renomeamos a exibição na tabela se necessário
-        st.table(df_orc)
-        total_geral = (df_orc['Venda'] * df_orc['Qtd']).sum() + df_orc['Mão de Obra'].sum()
-        st.metric("TOTAL DO ORÇAMENTO", f"R$ {total_geral:.2f}")
-
-# ABA 3: DIAGNÓSTICO
-with aba3:
-    st.header("🔧 Diagnóstico Técnico IA")
-    veiculo = st.text_input("Veículo/Modelo")
-    problema = st.text_area("Sintoma ou falha")
-    if st.button("Buscar Diagnóstico"):
-        if veiculo and problema:
-            resultado = chamar_gemini(f"Diagnóstico para {veiculo}: {problema}")
-            st.markdown("### 💡 Resultado:")
-            st.write(resultado)
-
-# ABA 4: HISTÓRICO
-with aba4:
-    st.header("📋 Histórico Geral")
-    st.info("Sistema ativo e operante.")
+            horas = st
