@@ -3,6 +3,7 @@ import requests
 import json
 import os
 import base64
+from datetime import datetime
 
 # Configuração premium da página
 st.set_page_config(
@@ -11,128 +12,118 @@ st.set_page_config(
     layout="centered"
 )
 
+# Nome do arquivo que funcionará como banco de dados
+ARQUIVO_BANCO = "historico_os.json"
+
+# Funções para gerenciar o banco de dados JSON
+def carregar_historico():
+    if os.path.exists(ARQUIVO_BANCO):
+        with open(ARQUIVO_BANCO, "r", encoding="utf-8") as f:
+            try:
+                return json.load(f)
+            except:
+                return []
+    return []
+
+def salvar_no_historico(cliente, veiculo, placa, tipo_laudo, relato, resultado):
+    historico = carregar_historico()
+    nova_os = {
+        "data": datetime.now().strftime("%d/%m/%Y %H:%M"),
+        "cliente": cliente,
+        "veiculo": veiculo,
+        "placa": placa.upper().strip(),
+        "tipo": tipo_laudo,
+        "relato": relato,
+        "resultado": resultado
+    }
+    historico.append(nova_os)
+    with open(ARQUIVO_BANCO, "w", encoding="utf-8") as f:
+        json.dump(historico, f, ensure_ascii=False, indent=4)
+
+# Título Principal do App
 st.title("🚀 Oficina Inteligente")
-st.subheader("Central Unificada de Diagnóstico, Esquemas Elétricos e Ajustes de Osciloscópio")
 st.write("---")
+
+# Criação de Abas: Uma para trabalhar no pátio e outra para consultar o histórico
+aba_patio, aba_historico = st.tabs(["🔧 Nova Ordem de Serviço", "🗂️ Histórico de Diagnósticos"])
 
 # Resgata a chave da API
 api_key = os.environ.get("GEMINI_API_KEY")
 
-# Área de Entrada de Dados do Pátio
-prompt = st.text_area(
-    "📝 Relato Técnico / Sintomas ou Solicitação de Esquema Elétrico:", 
-    placeholder="Ex: Fox 1.6 MSI falha na borboleta. Preciso do esquema elétrico do corpo de borboleta.\nEx 2: Nivus 1.0 TSI com erro de sensor de fase, mandando foto do osciloscópio...",
-    height=120
-)
-
-# Campo para Envio de Arquivos (Fotos, Vídeos ou Áudios)
-arquivo_enviado = st.file_uploader(
-    "📸 Insira as mídias do pátio (Foto do Scanner, Gráfico do Osciloscópio, etc.):", 
-    type=["png", "jpg", "jpeg", "mp4", "mov", "avi", "mp3", "wav", "m4a", "ogg"]
-)
-
-# Feedback visual das mídias carregadas
-if arquivo_enviado is not None:
-    if arquivo_enviado.type.startswith('image'):
-        st.image(arquivo_enviado, caption="Análise Visual Ativada 🔍", use_container_width=True)
-    elif arquivo_enviado.type.startswith('video'):
-        st.video(arquivo_enviado)
-        st.info("Análise de Vídeo Ativada 🎥")
-    elif arquivo_enviado.type.startswith('audio'):
-        st.audio(arquivo_enviado)
-        st.info("Análise Acústica Ativada 🎵")
-
-st.write("---")
-st.write("### 🎛️ Central de Comando")
-
-col1, col2 = st.columns(2)
-with col1:
-    botao_tecnico = st.button("🔧 Diagnóstico e Esquema Elétrico", use_container_width=True)
-with col2:
-    botao_cliente = st.button("💬 Traduzir para Laudo do Cliente (WhatsApp)", use_container_width=True)
-
-# Função de comunicação com a API do Gemini
-def chamar_gemini(contexto_prompt, midia):
-    url = f"https://generativelanguage.googleapis.com/v1/models/gemini-2.5-flash:generateContent?key={api_key}"
-    parts = []
+# ==========================================
+# ABA 1: TRABALHO DE PÁTIO (NOVA O.S.)
+# ==========================================
+with aba_patio:
+    st.subheader("Abertura de Diagnóstico / O.S.")
     
-    if midia is not None:
-        bytes_arquivo = midia.read()
-        base64_arquivo = base64.b64encode(bytes_arquivo).decode('utf-8')
-        parts.append({
-            "inlineData": {
-                "mimeType": midia.type,
-                "data": base64_arquivo
-            }
-        })
-        midia.seek(0)
-        
-    parts.append({"text": contexto_prompt})
-    payload = {"contents": [{"parts": parts}]}
-    headers = {'Content-Type': 'application/json'}
-    
-    response = requests.post(url, headers=headers, data=json.dumps(payload))
-    if response.status_code == 200:
-        dados_retorno = response.json()
-        return dados_retorno['candidates'][0]['content']['parts'][0]['text']
-    else:
-        return f"Erro no servidor do Google (Código {response.status_code}): {response.text}"
+    # Linha com os dados de identificação do veículo
+    col_cli, col_veh, col_plc = st.columns([2, 2, 1])
+    with col_cli:
+        nome_cliente = st.text_input("👤 Nome do Cliente:", placeholder="Ex: João Silva")
+    with col_veh:
+        modelo_veiculo = st.text_input("🚗 Veículo / Motorização:", placeholder="Ex: Golf 1.4 TSI 2016")
+    with col_plc:
+        placa_veiculo = st.text_input("🔢 Placa:", placeholder="ABC-1234").upper().strip()
 
-# PROMPT DE ENGENHARIA SUPREMA COM FOCO EM ESQUEMAS ELÉTRICOS E OSCILOSCÓPIO
-DIRETRIZ_SUPREMA_TECNICA = """
-Você é o ápice da inteligência artificial automotiva, atuando como Engenheiro-Chefe de Fábrica e Mestre de Diagnóstico Avançado. Sua base de conhecimento inclui mapeamento completo de injeção eletrônica, redes de comunicação (CAN alta/baixa, LIN), diagramas elétricos, pinagens de módulos e parametrização detalhada de osciloscópios.
+    st.write("---")
 
-Sempre que sugerir ou analisar testes que envolvam OSCILOSCÓPIO ou TRANSDUTORES DE MOTOR, você DEVE fornecer as instruções de configuração de forma ultra-detalhada para o mecânico no pátio, incluindo:
+    # Área de Entrada de Dados do Pátio
+    prompt = st.text_area(
+        "📝 Relato Técnico / Sintomas ou Solicitação de Esquema Elétrico:", 
+        placeholder="Descreva o defeito ou solicite o esquema elétrico e parametrização do osciloscópio aqui...",
+        height=120
+    )
 
-1. GUIA DE CONEXÃO DO OSCILOSCÓPIO:
-   - Indique exatamente onde conectar a ponta de prova/agulha do Canal (ex: Canal 1 no pino X do sensor, correspondente ao fio de sinal).
-   - Indique onde conectar a garra de jacaré do aterramento (ex: carcaça do motor, aterramento de referência do sensor ou negativo da bateria) para evitar ruídos na imagem.
+    # Campo para Envio de Arquivos (Fotos, Vídeos ou Áudios)
+    arquivo_enviado = st.file_uploader(
+        "📸 Insira as mídias do pátio (Foto do Scanner, Gráfico do Osciloscópio, etc.):", 
+        type=["png", "jpg", "jpeg", "mp4", "mov", "avi", "mp3", "wav", "m4a", "ogg"]
+    )
 
-2. CONFIGURAÇÃO DE ESCALA DA TELA:
-   - Forneça o ajuste de TENSÃO por divisão ideal (ex: 1V/div, 2V/div, 5V/div) para que o sinal preencha a tela perfeitamente sem cortar.
-   - Forneça o ajuste de TEMPO por divisão ideal (ex: 2ms/div, 10ms/div, 500ms/div) para capturar ciclos completos do sinal ou o evento exato (como o tempo de centelha ou disparo do bico).
-   - Se aplicável, mencione o tipo de Trigger recomendado (Borda de subida/descida, canal de referência) para congelar a onda na tela.
+    if arquivo_enviado is not None:
+        if arquivo_enviado.type.startswith('image'):
+            st.image(arquivo_enviado, caption="Análise Visual Ativada 🔍", use_container_width=True)
+        elif arquivo_enviado.type.startswith('video'):
+            st.video(arquivo_enviado)
+        elif arquivo_enviado.type.startswith('audio'):
+            st.audio(arquivo_enviado)
 
-3. PADRÃO DE ONDA ESPERADO (REFERÊNCIA DE BOM FUNCIONAMENTO):
-   - Descreva como deve ser o desenho correto na tela (ex: sinal de onda quadrada variando estritamente de 0V a 5V para sensores Hall, onda senoidal pura para indutivos, gráfico característico de disparo indutivo com pico de alta tensão para bobinas).
+    st.write("---")
+    st.write("### 🎛️ Central de Comando")
 
-Formate sua resposta técnica rigorosamente com estes títulos explicativos:
-### 📋 Dados Técnicos Extraídos & Parâmetros do Veículo
-### ⚡ Análise Elétrica e Lógica de Falhas
-### 🛠️ Mapeamento de Esquema Elétrico & Pinagens
-### 🔬 Guia do Osciloscópio (Conexão, Tempo/Tensão por Divisão e Sinal Esperado)
-### 🔍 Roteiro Prático de Testes (Passo a passo complementar no pátio)
-### 💡 Diagnóstico Provável & Causa Raiz
-"""
+    col1, col2 = st.columns(2)
+    with col1:
+        botao_tecnico = st.button("🔧 Diagnóstico e Esquema Elétrico", use_container_width=True)
+    with col2:
+        botao_cliente = st.button("💬 Traduzir para Laudo do Cliente (WhatsApp)", use_container_width=True)
 
-DIRETRIZ_SUPREMA_CLIENTE = """
-Você é o Diretor de Atendimento de uma oficina mecânica premium. Traduza o defeito ou necessidade de reparo técnico em um laudo comercial transparente, amigável e profissional para o WhatsApp do cliente.
-Destaque que a oficina usa equipamentos de diagnóstico por imagem de alta tecnologia (gráficos de comportamento do motor) e diagramas elétricos de fábrica para garantir precisão absoluta, eliminando o 'troquismo' de peças. Use tópicos limpos e emojis. Termine dizendo que a equipe está finalizando a cotação.
-"""
+    # Função de comunicação com a API do Gemini
+    def chamar_gemini(contexto_prompt, midia):
+        url = f"https://generativelanguage.googleapis.com/v1/models/gemini-2.5-flash:generateContent?key={api_key}"
+        parts = []
+        if midia is not None:
+            bytes_arquivo = midia.read()
+            base64_arquivo = base64.b64encode(bytes_arquivo).decode('utf-8')
+            parts.append({"inlineData": {"mimeType": midia.type, "data": base64_arquivo}})
+            midia.seek(0)
+        parts.append({"text": contexto_prompt})
+        payload = {"contents": [{"parts": parts}]}
+        headers = {'Content-Type': 'application/json'}
+        response = requests.post(url, headers=headers, data=json.dumps(payload))
+        if response.status_code == 200:
+            return response.json()['candidates'][0]['content']['parts'][0]['text']
+        else:
+            return f"Erro no servidor do Google (Código {response.status_code}): {response.text}"
 
-# Execução do Botão Técnico
-if botao_tecnico and (prompt or arquivo_enviado):
-    if not api_key:
-        st.error("Chave da API não configurada nos Segredos do Streamlit.")
-    else:
-        with st.spinner("🚀 Consultando Engenharia de Fábrica, Esquemas e Configurações de Osciloscópio..."):
-            contexto = f"{DIRETRIZ_SUPREMA_TECNICA}\n\nSolicitação do Mecânico:\nTexto: {prompt}\nMídia: Analisar anexo se houver."
-            resposta = chamar_gemini(contexto, arquivo_enviado)
-            st.success("Informações Técnicas, Esquema e Guia do Osciloscópio Gerados!")
-            st.markdown(resposta)
+    # PROMPTS DE ENGENHARIA E ATENDIMENTO
+    DIRETRIZ_SUPREMA_TECNICA = """Você é o Engenheiro-Chefe de Fábrica e Mestre de Diagnóstico Avançado. Forneça análises elétricas de falhas, pinagem detalhada de esquemas elétricos se solicitado, e um Guia do Osciloscópio completo (Conexão, tempo/tensão por divisão e sinal esperado). Formate estritamente com os títulos: ### 📋 Dados Técnicos Extraídos, ### ⚡ Análise Elétrica e Lógica de Falhas, ### 🛠️ Mapeamento de Esquema Elétrico & Pinagens, ### 🔬 Guia do Osciloscópio, ### 🔍 Roteiro Prático de Testes, ### 💡 Diagnóstico Provável."""
+    DIRETRIZ_SUPREMA_CLIENTE = """Você é o Diretor de Atendimento de uma oficina premium. Traduza o defeito técnico em um laudo comercial transparente, amigável e profissional em tópicos com emojis para o WhatsApp do cliente. Destaque o uso de tecnologia avançada (osciloscópios/manuais de fábrica) para evitar o 'troquismo' de peças."""
 
-# Execução do Botão Cliente
-if botao_cliente and (prompt or arquivo_enviado):
-    if not api_key:
-        st.error("Chave da API não configurada nos Segredos do Streamlit.")
-    else:
-        with st.spinner("✍️ Convertendo para linguagem comercial premium..."):
-            contexto = f"{DIRETRIZ_SUPREMA_CLIENTE}\n\nDados da Oficina:\nTexto: {prompt}\nMídia: Analisar anexo se houver."
-            resposta = chamar_gemini(contexto, arquivo_enviado)
-            st.success("Laudo Comercial Premium Gerado!")
-            st.info("💡 Pronto para cópia! Cole direto no WhatsApp do cliente:")
-            st.markdown(resposta)
-            st.balloons()
-
-elif (botao_tecnico or botao_cliente):
-    st.error("Por favor, digite um relato ou insira uma mídia antes de processar.")
+    # Execução do Botão Técnico
+    if botao_tecnico and (prompt or arquivo_enviado):
+        if not api_key:
+            st.error("Chave da API não configurada nos Segredos.")
+        else:
+            with st.spinner("🚀 Consultando Engenharia de Fábrica e Esquemas..."):
+                contexto = f"{DIRETRIZ_SUPREMA_TECNICA}\n\nCarro: {modelo_veiculo}\nRelato: {prompt}"
+                resposta = chamar_gemini(contexto,
