@@ -79,7 +79,10 @@ with aba2:
             qtd_medida = st.number_input("Quantidade (Unidade ou Litros)", min_value=0.0)
             
         with col2:
-            posicao = st.selectbox("Posição", ["Nenhuma", "Dianteira Direita", "Dianteira Esquerda", "Traseira Direita", "Traseira Esquerda"])
+            # Substituindo o antigo selectbox por dois seletores separados
+            eixo = st.selectbox("Eixo", ["Nenhum", "Dianteira", "Traseira"])
+            lado = st.selectbox("Lado", ["Nenhum", "Direito", "Esquerdo"])
+            
             horas_mao_obra = st.number_input("Horas de Mão de Obra", min_value=0.0)
             valor_hora = st.number_input("Valor da Hora Técnica (R$)", value=100.0)
         
