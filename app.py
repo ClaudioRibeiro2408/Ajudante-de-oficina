@@ -111,4 +111,16 @@ elif st.session_state.pagina == "Histórico":
     col_b.metric("Lucro", f"R$ {total_vendas - total_despesas:.2f}")
     
     with st.expander("➕ Lançar Despesa"):
-        with st.form
+        with st.form("desp_form", clear_on_submit=True):
+            d_desc = st.text_input("Descrição")
+            d_val = st.number_input("Valor", min_value=0.0)
+            if st.form_submit_button("Salvar"):
+                nova_despesa = {"Descrição": d_desc, "Valor": d_val}
+                despesas.append(nova_despesa)
+                salvar_dados("despesas.json", despesas)
+                st.rerun()
+    st.subheader("Histórico de Orçamentos")
+    if orcamentos: st.table(pd.DataFrame(orcamentos))
+
+if st.session_state.pagina != "Início":
+    if st.button("⬅️ Voltar"): st.session_state.pagina = "Início"; st.rerun()
