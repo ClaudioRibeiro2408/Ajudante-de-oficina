@@ -106,8 +106,17 @@ elif st.session_state.pagina == "Orçamento":
             pdf.set_font("Arial", 'B', 16)
             pdf.cell(200, 10, txt=f"Orcamento: {cliente_selecionado}", ln=True, align='C')
             pdf.set_font("Arial", size=12)
+            
             for it in itens_cliente:
-                pdf.cell(200, 10, txt=f"{it['Item']} - {it['Qtd']} {it['Unidade']} | R$ {it['Venda']}", ln=True)
+                # Usamos .get() com valores padrão para evitar o KeyError
+                item_nome = it.get('Item', 'N/A')
+                qtd = it.get('Qtd', 0)
+                unid = it.get('Unidade', '')
+                venda = it.get('Venda', 0.0)
+                
+                texto = f"{item_nome} - {qtd} {unid} | R$ {float(venda):.2f}"
+                pdf.cell(200, 10, txt=texto, ln=True)
+                
             pdf.output("orcamento.pdf")
             st.success("PDF Gerado!")
             msg = f"Ola, segue o orcamento para {cliente_selecionado}."
