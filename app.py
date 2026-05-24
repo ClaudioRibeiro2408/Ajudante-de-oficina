@@ -87,7 +87,8 @@ elif st.session_state.pagina == "Orçamento":
     lista_orc = carregar_dados("orcamentos.json")
     itens_filtrados = [i for i in lista_orc if i['Cliente'] == cliente]
     if itens_filtrados: 
-        st.table(pd.DataFrame(itens_filtrados))
+        df = pd.DataFrame(itens_filtrados)
+        st.table(df[['Tipo', 'Peça', 'Venda', 'Obs']])
 
 elif st.session_state.pagina == "Diagnóstico":
     st.header("🔧 Diagnóstico Técnico IA")
