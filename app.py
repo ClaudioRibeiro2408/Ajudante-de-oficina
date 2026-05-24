@@ -1,29 +1,31 @@
 import streamlit as st
-import google.generativeai as genai
 
-# --- CONFIGURAÇÃO ---
 st.set_page_config(page_title="Oficina Pro", layout="centered")
-st.title("⚙️ Oficina Pro - Diagnóstico IA")
 
-# COLOCAR A CHAVE AQUI OU NO SECRETS
-api_key = st.text_input("Insira sua API Key do Google (Google AI Studio):", type="password")
+st.title("⚙️ Oficina Pro - Diagnóstico Técnico")
 
+# Campos fixos
 veiculo = st.text_input("Modelo do carro:")
-queixa = st.text_area("Descreva o problema:")
+sintoma = st.text_area("O que o carro está apresentando?")
 
-if st.button("Pesquisar Diagnóstico Técnico"):
-    if api_key and veiculo and queixa:
-        try:
-            genai.configure(api_key=api_key)
-            model = genai.GenerativeModel('gemini-1.5-flash')
+if st.button("Consultar Base Técnica"):
+    if veiculo and sintoma:
+        s = sintoma.lower()
+        
+        # Base de conhecimento técnica rápida
+        if "freio" in s:
+            diagnostico = "Verificar espessura de pastilhas, nível de fluido e presença de ar no sistema."
+        elif "motor" in s or "falha" in s:
+            diagnostico = "Testar velas, cabos de ignição e pressão da linha de combustível."
+        elif "bateria" in s or "partida" in s:
+            diagnostico = "Verificar voltagem da bateria (ideal 12.6V) e funcionamento do motor de arranque."
+        elif "aquecimento" in s or "temperatura" in s:
+            diagnostico = "Checar nível de líquido de arrefecimento, válvula termostática e ventoinha."
+        else:
+            diagnostico = "Sintoma não mapeado na base rápida. Recomenda-se teste de rodagem e scanner para leitura de erros."
             
-            prompt = f"Você é um mecânico especialista. Analise o veículo {veiculo} com o sintoma: {queixa}. Liste causas prováveis, testes técnicos para confirmar e o que verificar primeiro."
-            
-            with st.spinner("IA pesquisando nos bancos de dados automotivos..."):
-                response = model.generate_content(prompt)
-                st.success("Diagnóstico Gerado:")
-                st.write(response.text)
-        except Exception as e:
-            st.error(f"Erro ao conectar com a IA: {e}")
+        st.subheader("Diagnóstico Sugerido:")
+        st.write(f"Para o veículo {veiculo}:")
+        st.info(diagnostico)
     else:
-        st.warning("Preencha todos os campos e a API Key.")
+        st.warning("Preencha o modelo e o sintoma para obter uma resposta.")
