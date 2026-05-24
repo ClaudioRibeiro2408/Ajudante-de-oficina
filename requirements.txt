@@ -1,6 +1,2 @@
 streamlit
-requests
-fpdf2
-pillow
-pandas
-reportlab
+google-generativeai
