@@ -4,9 +4,10 @@ import os
 import pandas as pd
 import requests
 
+# Configuração da Página
 st.set_page_config(page_title="Oficina Pro", layout="centered")
 
-# --- FUNÇÕES DE PERSISTÊNCIA ---
+# --- FUNÇÕES DE APOIO (SISTEMA) ---
 def carregar_dados(arquivo):
     if not os.path.exists(arquivo): return []
     try:
@@ -14,39 +15,99 @@ def carregar_dados(arquivo):
             return json.load(f)
     except: return []
 
-# --- ESTADO DE NAVEGAÇÃO ---
+def salvar_dados(arquivo, dados):
+    with open(arquivo, "w", encoding="utf-8") as f:
+        json.dump(dados, f, ensure_ascii=False, indent=4)
+
+def chamar_gemini(prompt):
+    api_key = st.secrets.get("GEMINI_API_KEY")
+    if not api_key: return "Erro: Chave API não configurada."
+    url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash:generateContent?key={api_key}"
+    payload = {"contents": [{"parts": [{"text": prompt}]}]}
+    try:
+        response = requests.post(url, json=payload)
+        return response.json()['candidates'][0]['content']['parts'][0]['text']
+    except: return "Erro de comunicação com a IA."
+
+# --- CONTROLE DE NAVEGAÇÃO ---
 if 'pagina' not in st.session_state:
-    st.session_state.pagina = "Orçamento" # Começa direto na principal
+    st.session_state.pagina = "Início"
 
-# --- MENU PRINCIPAL (Layout Ajustado) ---
-# Botões alinhados
-col1, col2, col3 = st.columns(3)
-with col1:
-    if st.button("👤 Clientes", use_container_width=True): st.session_state.pagina = "Clientes"
-with col2:
-    if st.button("🔧 Diagnóstico", use_container_width=True): st.session_state.pagina = "Diagnóstico"
-with col3:
-    if st.button("📋 Histórico", use_container_width=True): st.session_state.pagina = "Histórico"
+# --- TÍTULO E DASHBOARD (ESTILO AGENDA BOA) ---
+st.title("⚙️ Oficina Pro")
 
-# Botão grande embaixo
+# Linha de 3 botões menores
+c1, c2, c3 = st.columns(3)
+with c1:
+    if st.button("👤 Clientes", use_container_width=True):
+        st.session_state.pagina = "Clientes"
+with c2:
+    if st.button("🔧 Diagnóstico", use_container_width=True):
+        st.session_state.pagina = "Diagnóstico"
+with c3:
+    if st.button("📋 Histórico", use_container_width=True):
+        st.session_state.pagina = "Histórico"
+
+# Botão grande de Orçamento embaixo
 if st.button("➕ Criar novo orçamento", use_container_width=True, type="primary"):
     st.session_state.pagina = "Orçamento"
 
 st.divider()
 
-# --- LÓGICA DE NAVEGAÇÃO ---
+# --- LÓGICA DAS PÁGINAS ---
+
+# PÁGINA: CLIENTES
 if st.session_state.pagina == "Clientes":
-    st.header("👤 Clientes")
-    # Aqui vamos reintegrar seu formulário de clientes
+    st.header("👤 Cadastro de Cliente")
+    with st.form("cli_form", clear_on_submit=True):
+        col1, col2 = st.columns(2)
+        nome = col1.text_input("Nome do Cliente")
+        telefone = col1.text_input("Telefone")
+        marca = col2.text_input("Marca do Veículo")
+        modelo = col2.text_input("Modelo do Veículo")
+        placa = col2.text_input("Placa")
+        
+        if st.form_submit_button("Salvar Cliente"):
+            if nome:
+                dados = carregar_dados("clientes.json")
+                dados.append({"Nome": nome, "Telefone": telefone, "Marca": marca, "Modelo": modelo, "Placa": placa})
+                salvar_dados("clientes.json", dados)
+                st.success("Cliente salvo com sucesso!")
+                st.rerun()
+            else:
+                st.error("O Nome é obrigatório.")
     
+    lista_cli = carregar_dados("clientes.json")
+    if lista_cli:
+        st.subheader("Clientes Cadastrados")
+        st.table(pd.DataFrame(lista_cli))
+
+# PÁGINA: ORÇAMENTO
 elif st.session_state.pagina == "Orçamento":
     st.header("💰 Novo Orçamento")
-    # Aqui vamos reintegrar sua lógica de orçamentos
+    lista_cli = carregar_dados("clientes.json")
+    nomes_clientes = [c['Nome'] for c in lista_cli]
     
+    cliente_selecionado = st.selectbox("Selecione o Cliente", [""] + nomes_clientes)
+    
+    with st.form("orc_form", clear_on_submit=True):
+        peca = st.text_input("Peça/Serviço")
+        v_venda = st.number_input("Preço de Venda R$", min_value=0.0)
+        if st.form_submit_button("Adicionar Item"):
+            if cliente_selecionado:
+                dados = carregar_dados("orcamentos.json")
+                dados.append({"Cliente": cliente_selecionado, "Peça": peca, "Venda": v_venda})
+                salvar_dados("orcamentos.json", dados)
+                st.rerun()
+            else:
+                st.error("Selecione um cliente primeiro!")
+
+# PÁGINA: DIAGNÓSTICO
 elif st.session_state.pagina == "Diagnóstico":
-    st.header("🔧 Diagnóstico IA")
-    # Aqui entra sua IA
-    
-elif st.session_state.pagina == "Histórico":
-    st.header("📋 Histórico e Financeiro")
-    # Aqui entra o histórico
+    st.header("🔧 Diagnóstico Técnico IA")
+    v_diag = st.text_input("Veículo (Ex: Gol G5 1.0)")
+    p_diag = st.text_area("Descreva o sintoma ou erro")
+    if st.button("Analisar com IA"):
+        if v_diag and p_diag:
+            with st.spinner("Consultando base técnica..."):
+                resposta = chamar_gemini(f"Diagnóstico para {v_diag}: {p
