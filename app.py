@@ -74,71 +74,83 @@ if st.session_state.pagina == "Orçamento":
             pdf = FPDF()
             pdf.add_page()
             
-            # Cabeçalho
-            pdf.set_font("Arial", 'B', 14)
-            pdf.cell(0, 10, "Performance Servicos Automotivos", ln=True)
+            # --- CABEÇALHO ---
+            pdf.set_font("Arial", 'B', 16)
+            pdf.cell(0, 10, "Performance Serviços Automotivos", ln=True)
             pdf.set_font("Arial", size=9)
             pdf.cell(0, 5, "64.242.276/0001-69 | Rua Nelly da Cruz Teixeira, 618", ln=True)
-            pdf.cell(0, 5, "Foz do Iguacu - PR | +55 (45) 99804-2742", ln=True)
-            pdf.line(10, 30, 200, 30)
+            pdf.cell(0, 5, "Foz do Iguaçu - PR | (45) 99804-2742", ln=True)
+            pdf.line(10, 32, 200, 32)
             
-            # Dados Orçamento
+            # --- INFO ORÇAMENTO ---
             pdf.ln(10)
-            pdf.set_fill_color(230, 230, 230)
             pdf.set_font("Arial", 'B', 12)
-            pdf.cell(0, 8, "Orcamento 005-2026", ln=True, fill=True)
-            pdf.set_font("Arial", size=10)
-            pdf.cell(0, 6, f"Cliente: {cliente_selecionado}", ln=True)
+            pdf.set_fill_color(200, 200, 200)
+            pdf.cell(0, 8, f"Orçamento {datetime.now().strftime('%y%m%d')}", ln=True, fill=True)
+            pdf.set_font("Arial", '', 10)
+            pdf.cell(0, 8, f"Cliente: {cliente_selecionado}", ln=True)
             
-            # Informações básicas (Bloco)
+            # --- INFORMAÇÕES BÁSICAS ---
             pdf.ln(5)
             pdf.set_font("Arial", 'B', 10)
-            pdf.cell(0, 6, "Informacoes basicas", ln=True)
+            pdf.cell(0, 6, "Informações básicas", ln=True)
             pdf.line(10, pdf.get_y(), 200, pdf.get_y())
             pdf.ln(2)
-            pdf.set_font("Arial", size=9)
-            pdf.cell(95, 5, "Marca: GM", ln=0)
-            pdf.cell(95, 5, "Modelo: Onix", ln=1)
-            
-            # Tabela de itens
-            def criar_tabela(titulo, tipo_item):
+            pdf.set_font("Arial", '', 9)
+            # Aqui você pode buscar os dados do cliente se tiver salvo no JSON dele
+            pdf.cell(95, 6, "Marca: (Conforme cadastro)", ln=0)
+            pdf.cell(95, 6, "Modelo: (Conforme cadastro)", ln=1)
+
+            # --- TABELAS ---
+            def desenhar_tabela(titulo, tipo_item):
                 pdf.ln(5)
                 pdf.set_font("Arial", 'B', 10)
-                pdf.cell(0, 6, titulo, ln=True, fill=True)
+                pdf.cell(0, 6, titulo, ln=True)
                 pdf.set_font("Arial", 'B', 8)
-                pdf.cell(80, 6, "Descricao", border=1)
-                pdf.cell(20, 6, "Unid.", border=1)
-                pdf.cell(30, 6, "Preco Unit.", border=1)
-                pdf.cell(20, 6, "Qtd", border=1)
-                pdf.cell(30, 6, "Total", border=1)
+                # Cabeçalhos da tabela
+                pdf.cell(80, 6, "Descrição", border=1, fill=True)
+                pdf.cell(20, 6, "Unid.", border=1, fill=True)
+                pdf.cell(30, 6, "Preço Unit.", border=1, fill=True)
+                pdf.cell(20, 6, "Qtd.", border=1, fill=True)
+                pdf.cell(30, 6, "Preço", border=1, fill=True)
                 pdf.ln()
                 
-                pdf.set_font("Arial", size=8)
-                subtotal = 0
+                pdf.set_font("Arial", '', 8)
+                soma = 0
                 for it in [i for i in itens_cliente if i.get('Tipo') == tipo_item]:
                     preco = float(it.get('Venda', 0))
-                    qtd = int(it.get('Qtd', 1))
-                    total_item = preco * qtd
+                    total_linha = preco * int(it.get('Qtd', 1))
                     pdf.cell(80, 6, it.get('Item', ''), border=1)
                     pdf.cell(20, 6, it.get('Unidade', ''), border=1)
                     pdf.cell(30, 6, f"R$ {preco:.2f}", border=1)
-                    pdf.cell(20, 6, str(qtd), border=1)
-                    pdf.cell(30, 6, f"R$ {total_item:.2f}", border=1)
+                    pdf.cell(20, 6, str(it.get('Qtd', '')), border=1)
+                    pdf.cell(30, 6, f"R$ {total_linha:.2f}", border=1)
                     pdf.ln()
-                    subtotal += total_item
-                return subtotal
+                    soma += total_linha
+                return soma
 
-            total_servicos = criar_tabela("Servicos", "Serviço")
-            total_pecas = criar_tabela("Pecas", "Peça")
+            tot_serv = desenhar_tabela("Serviços", "Serviço")
+            tot_pecas = desenhar_tabela("Peças", "Peça")
             
-            # Total final
-            pdf.ln(5)
+            # --- RODAPÉ DE TOTAIS E ASSINATURA ---
+            pdf.ln(10)
             pdf.set_font("Arial", 'B', 10)
-            pdf.cell(150, 8, "TOTAL FINAL", border=1, align='R')
-            pdf.cell(30, 8, f"R$ {total_servicos + total_pecas:.2f}", border=1)
+            pdf.cell(150, 6, "Total Serviços", border=1, align='R')
+            pdf.cell(30, 6, f"R$ {tot_serv:.2f}", border=1, ln=True)
+            pdf.cell(150, 6, "Total Peças", border=1, align='R')
+            pdf.cell(30, 6, f"R$ {tot_pecas:.2f}", border=1, ln=True)
+            pdf.set_fill_color(230, 230, 230)
+            pdf.cell(150, 6, "TOTAL GERAL", border=1, align='R', fill=True)
+            pdf.cell(30, 6, f"R$ {tot_serv + tot_pecas:.2f}", border=1, fill=True, ln=True)
+            
+            pdf.ln(20)
+            pdf.cell(90, 5, "_________________________________", align='C')
+            pdf.cell(90, 5, "_________________________________", align='C', ln=True)
+            pdf.cell(90, 5, "Performance Serviços Automotivos", align='C')
+            pdf.cell(90, 5, f"{cliente_selecionado}", align='C', ln=True)
             
             pdf.output("orcamento.pdf")
-            st.success("PDF gerado com sucesso!")
+            st.success("PDF gerado!")
             with open("orcamento.pdf", "rb") as f:
                 st.download_button("📥 Baixar PDF", f, "orcamento.pdf")
 
