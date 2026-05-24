@@ -71,6 +71,7 @@ if st.session_state.pagina == "Orçamento":
         st.table(pd.DataFrame(itens_cliente))
         
        # --- NOVO BLOCO PREMIUM ---
+        # --- BLOCO PREMIUM AVANÇADO ---
         if st.button("📄 Gerar PDF Profissional"):
             from reportlab.lib.pagesizes import A4
             from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer
@@ -78,17 +79,34 @@ if st.session_state.pagina == "Orçamento":
             from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
             
             caminho = "orcamento.pdf"
-            doc = SimpleDocTemplate(caminho, pagesize=A4)
+            doc = SimpleDocTemplate(caminho, pagesize=A4, rightMargin=30, leftMargin=30, topMargin=30, bottomMargin=30)
             elementos = []
             estilos = getSampleStyleSheet()
 
-            # Estilo personalizado
-            titulo_estilo = ParagraphStyle('titulo', fontSize=18, alignment=1, textColor=colors.HexColor('#2c3e50'))
-            elementos.append(Paragraph("Performance Servicos Automotivos", titulo_estilo))
-            elementos.append(Spacer(1, 10))
+            # Estilo Título
+            estilo_titulo = ParagraphStyle('titulo', fontSize=22, fontName='Helvetica-Bold', textColor=colors.HexColor('#2c3e50'))
+            elementos.append(Paragraph("Performance Serviços Automotivos", estilo_titulo))
+            elementos.append(Spacer(1, 5))
             
-            # Dados da tabela
-            dados = [["Descricao", "Unid.", "Preco Unit.", "Qtd.", "Total"]]
+            # Subtítulo (Contato)
+            estilo_contato = ParagraphStyle('contato', fontSize=9, leading=12)
+            elementos.append(Paragraph("CNPJ: 64.242.276/0001-69 | Rua Nelly da Cruz Teixeira, 618", estilo_contato))
+            elementos.append(Paragraph("Foz do Iguaçu - PR | (45) 99804-2742", estilo_contato))
+            elementos.append(Spacer(1, 15))
+            
+            # Barra horizontal colorida
+            line = Table([[""]], colWidths=[535])
+            line.setStyle(TableStyle([('BACKGROUND', (0,0), (-1,-1), colors.HexColor('#2c3e50'))]))
+            elementos.append(line)
+            elementos.append(Spacer(1, 15))
+
+            # Dados do Orçamento
+            estilo_sub = ParagraphStyle('sub', fontSize=14, fontName='Helvetica-Bold')
+            elementos.append(Paragraph(f"Orçamento - {cliente_selecionado}", estilo_sub))
+            elementos.append(Spacer(1, 10))
+
+            # Tabela (Layout Profissional)
+            dados = [["Descrição", "Unid.", "Preço Unit.", "Qtd.", "Total"]]
             total_geral = 0
             for it in itens_cliente:
                 p = float(it.get('Venda', 0))
@@ -97,21 +115,25 @@ if st.session_state.pagina == "Orçamento":
                 total_geral += t
                 dados.append([it.get('Item', ''), it.get('Unidade', ''), f"R$ {p:.2f}", str(q), f"R$ {t:.2f}"])
 
-            tabela = Table(dados, colWidths=[180, 50, 80, 50, 80])
+            tabela = Table(dados, colWidths=[200, 50, 80, 50, 90])
             tabela.setStyle(TableStyle([
-                ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#2c3e50')),
-                ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
+                ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#bdc3c7')),
+                ('TEXTCOLOR', (0, 0), (-1, 0), colors.black),
+                ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+                ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
                 ('GRID', (0, 0), (-1, -1), 0.5, colors.grey),
-                ('ROWBACKGROUNDS', (0, 1), (-1, -1), [colors.white, colors.lightgrey]),
             ]))
             elementos.append(tabela)
+            
+            # Rodapé Financeiro
             elementos.append(Spacer(1, 20))
-            elementos.append(Paragraph(f"TOTAL GERAL: R$ {total_geral:.2f}", ParagraphStyle('total', fontSize=14, alignment=2)))
+            estilo_total = ParagraphStyle('total', fontSize=16, fontName='Helvetica-Bold', alignment=2, textColor=colors.darkblue)
+            elementos.append(Paragraph(f"TOTAL GERAL: R$ {total_geral:.2f}", estilo_total))
             
             doc.build(elementos)
-            st.success("PDF gerado com sucesso!")
+            st.success("PDF gerado com alta qualidade!")
             with open(caminho, "rb") as f:
-                st.download_button("Baixar PDF Premium", f, "orcamento.pdf")
+                st.download_button("📥 Baixar Orçamento Premium", f, "orcamento.pdf")
 # [Restante do código de Clientes, Diagnóstico e Histórico...]
 if st.session_state.pagina == "Clientes":
     # (Código de clientes...)
