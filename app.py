@@ -77,35 +77,55 @@ elif st.session_state.pagina == "Catálogo":
             salvar_dados("catalogo.json", cat)
             st.success("Item salvo!")
 elif st.session_state.pagina == "Orçamento":
-    st.header("💰 Novo Orçamento")
+    st.header("Novo Orçamento")
+    
+    # 1. Carrega dados
     lista_cli = carregar_dados("clientes.json")
-    nomes = [c['Nome'] for c in lista_cli]
-    cliente = st.selectbox("Selecione o Cliente", [""] + nomes)
+    catalogo = carregar_dados("catalogo.json")
+    
+    # 2. Seleção de Cliente e Busca no Catálogo
+    cliente = st.selectbox("Selecione o Cliente", [""] + [c['Nome'] for c in lista_cli])
+    
+    # Busca de itens já cadastrados
+    opcoes_cat = [""] + [f"{i['Tipo']} - {i['Nome']} (R$ {i['Preço']})" for i in catalogo]
+    item_selecionado = st.selectbox("Ou escolha do Catálogo", opcoes_cat)
+    
+    # Auto-preenchimento
+    def_desc, def_valor = "", 0.0
+    if item_selecionado and item_selecionado != "":
+        item_data = next((i for i in catalogo if f"{i['Tipo']} - {i['Nome']} (R$ {i['Preço']})" == item_selecionado), None)
+        if item_data:
+            def_desc, def_valor = item_data['Nome'], item_data['Preço']
+
+    # 3. Formulário
     with st.form("orc_form", clear_on_submit=True):
-        tipo = st.radio("Tipo do item", ["Serviço", "Peça"], horizontal=True)
-        peca = st.text_input("Peça/Serviço")
-        venda = st.number_input("Preço R$", min_value=0.0)
-        obs = st.text_area("Observações")
-        if st.form_submit_button("Adicionar"):
-            if cliente:
+        tipo = st.radio("Tipo", ["Peça", "Serviço"], horizontal=True)
+        peca = st.text_input("Descrição", value=def_desc)
+        venda = st.number_input("Preço R$", value=def_valor, min_value=0.0)
+        salvar_no_cat = st.checkbox("Salvar no catálogo para próximas vezes")
+        
+        if st.form_submit_button("Adicionar ao Orçamento"):
+            if cliente and peca:
+                # Salva no orçamento
                 dados = carregar_dados("orcamentos.json")
-                dados.append({"Cliente": cliente, "Peça": peca, "Venda": venda, "Obs": obs, "Tipo": tipo})
+                dados.append({"Cliente": cliente, "Peça": peca, "Venda": venda, "Tipo": tipo})
                 salvar_dados("orcamentos.json", dados)
+                
+                # Salva no catálogo se marcado
+                if salvar_no_cat:
+                    cat = carregar_dados("catalogo.json")
+                    cat.append({"Tipo": tipo, "Nome": peca, "Preço": venda})
+                    salvar_dados("catalogo.json", cat)
+                
                 st.rerun()
             else: 
-                st.error("Selecione um cliente primeiro!")
-   # Carrega o catálogo
-    catalogo = carregar_dados("catalogo.json")
-    # Filtra nomes baseados no catálogo
-    lista_nomes = [f"{i['Tipo']}: {i['Nome']}" for i in catalogo]
-    
-    selected_item = st.selectbox("Escolha do Catálogo", [""] + lista_nomes)
-    
-    # Preenche automático se escolher algo
-    item_encontrado = next((i for i in catalogo if f"{i['Tipo']}: {i['Nome']}" == selected_item), None)
-    
-    peca = st.text_input("Descrição", value=item_encontrado['Nome'] if item_encontrado else "")
-    venda = st.number_input("Preço R$", value=item_encontrado['Preço'] if item_encontrado else 0.0)
+                st.error("Preencha o cliente e a descrição!")
+
+    # 4. Exibição da Tabela
+    lista_orc = carregar_dados("orcamentos.json")
+    itens_filtrados = [i for i in lista_orc if i['Cliente'] == cliente]
+    if itens_filtrados: 
+        st.table(pd.DataFrame(itens_filtrados))
 
 elif st.session_state.pagina == "Diagnóstico":
     st.header("🔧 Diagnóstico Técnico IA")
