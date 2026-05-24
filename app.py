@@ -100,26 +100,42 @@ elif st.session_state.pagina == "Orçamento":
     # 3. Formulário
     with st.form("orc_form", clear_on_submit=True):
         tipo = st.radio("Tipo", ["Peça", "Serviço"], horizontal=True)
-        peca = st.text_input("Descrição", value=def_desc)
-        venda = st.number_input("Preço R$", value=def_valor, min_value=0.0)
-        salvar_no_cat = st.checkbox("Salvar no catálogo para próximas vezes")
+        peca = st.text_input("Qual é o serviço/peça?")
+        detalhes = st.text_area("Detalhes (opcional)")
         
-        if st.form_submit_button("Adicionar ao Orçamento"):
+        col1, col2 = st.columns(2)
+        unidade = col1.text_input("Unidade (ex: un, kg, hora)")
+        preco = col2.number_input("Preço unitário R$", min_value=0.0, format="%.2f")
+        
+        qtd = st.number_input("Quantidade", min_value=1, value=1)
+        
+        st.write(f"### Valor Total: R$ {preco * qtd:.2f}")
+        
+        salvar_no_cat = st.checkbox("Salvar serviço/peça no meu catálogo")
+        
+        if st.form_submit_button("Adicionar ao pedido"):
             if cliente and peca:
-                # Salva no orçamento
                 dados = carregar_dados("orcamentos.json")
-                dados.append({"Cliente": cliente, "Peça": peca, "Venda": venda, "Tipo": tipo})
+                dados.append({
+                    "Cliente": cliente, 
+                    "Peça": peca, 
+                    "Detalhes": detalhes,
+                    "Unidade": unidade,
+                    "Preço": preco,
+                    "Qtd": qtd,
+                    "Total": preco * qtd,
+                    "Tipo": tipo
+                })
                 salvar_dados("orcamentos.json", dados)
                 
-                # Salva no catálogo se marcado
                 if salvar_no_cat:
                     cat = carregar_dados("catalogo.json")
-                    cat.append({"Tipo": tipo, "Nome": peca, "Preço": venda})
+                    cat.append({"Tipo": tipo, "Nome": peca, "Preço": preco, "Unidade": unidade})
                     salvar_dados("catalogo.json", cat)
                 
                 st.rerun()
             else: 
-                st.error("Preencha o cliente e a descrição!")
+                st.error("Preencha o cliente e o nome do serviço/peça!")
 
     # 4. Exibição da Tabela
     lista_orc = carregar_dados("orcamentos.json")
