@@ -2,13 +2,13 @@ import streamlit as st
 import json
 import os
 import pandas as pd
-import requests
-from fpdf import FPDF
+from reportlab.lib.pagesizes import A4
+from reportlab.pdfgen import canvas
 from datetime import datetime
 
+# --- CONFIGURAÇÃO E DADOS ---
 st.set_page_config(page_title="Oficina Pro", layout="centered")
 
-# --- FUNÇÕES ---
 def carregar_dados(arquivo):
     if not os.path.exists(arquivo): return []
     try:
@@ -18,129 +18,58 @@ def carregar_dados(arquivo):
 def salvar_dados(arquivo, dados):
     with open(arquivo, "w", encoding="utf-8") as f: json.dump(dados, f, ensure_ascii=False, indent=4)
 
-def chamar_gemini(prompt):
-    api_key = st.secrets.get("GEMINI_API_KEY")
-    if not api_key: return "Erro: Chave API não configurada."
-    url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash:generateContent?key={api_key}"
-    payload = {"contents": [{"parts": [{"text": prompt}]}]}
-    try:
-        response = requests.post(url, json=payload)
-        return response.json()['candidates'][0]['content']['parts'][0]['text']
-    except: return "Erro de comunicação com a IA."
+# --- FUNÇÃO DE GERAÇÃO DE PDF (Canvas Profissional) ---
+def gerar_pdf_final(cliente_nome, itens, arquivo="orcamento.pdf"):
+    c = canvas.Canvas(arquivo, pagesize=A4)
+    # Cabeçalho
+    c.setFont("Helvetica-Bold", 14)
+    c.drawString(50, 800, "Performance Serviços Automotivos")
+    c.setFont("Helvetica", 9)
+    c.drawString(50, 785, "64.242.276/0001-69 | Rua Nelly da Cruz Teixeira, 618")
+    c.drawString(50, 773, "Foz do Iguaçu - PR | (45) 99804-2742")
+    c.line(50, 760, 550, 760)
+    # Conteúdo
+    c.setFont("Helvetica-Bold", 12)
+    c.drawString(50, 730, f"Orçamento para: {cliente_nome}")
+    c.setFont("Helvetica", 10)
+    y = 700
+    for it in itens:
+        c.drawString(50, y, f"{it.get('Item')} - {it.get('Qtd')} {it.get('Unidade')} - R$ {float(it.get('Venda', 0)):.2f}")
+        y -= 20
+    c.save()
 
 # --- NAVEGAÇÃO ---
 if 'pagina' not in st.session_state: st.session_state.pagina = "Início"
-st.title("⚙️ Oficina Pro")
 
-# [Código de navegação mantido...]
-c1, c2, c3 = st.columns(3)
-if c1.button("👤 Clientes", use_container_width=True): st.session_state.pagina = "Clientes"
-if c2.button("🔧 Diagnóstico", use_container_width=True): st.session_state.pagina = "Diagnóstico"
-if c3.button("📋 Histórico", use_container_width=True): st.session_state.pagina = "Histórico"
-if st.button("➕ Novo Orçamento", type="primary", use_container_width=True): st.session_state.pagina = "Orçamento"
+st.title("⚙️ Oficina Pro")
+c1, c2, c3, c4 = st.columns(4)
+if c1.button("👤 Clientes"): st.session_state.pagina = "Clientes"
+if c2.button("🔧 Diagnóstico"): st.session_state.pagina = "Diagnóstico"
+if c3.button("📋 Histórico"): st.session_state.pagina = "Histórico"
+if c4.button("➕ Orçamento"): st.session_state.pagina = "Orçamento"
 st.divider()
 
-# --- PÁGINA ORÇAMENTO (COM NOVO PDF) ---
-if st.session_state.pagina == "Orçamento":
-    st.header("💰 Novo Orçamento")
-    lista_cli = carregar_dados("clientes.json")
-    cliente_selecionado = st.selectbox("Selecione o Cliente", [""] + [c['Nome'] for c in lista_cli])
-    
-    with st.form("orc_form", clear_on_submit=True):
-        tipo = st.radio("Tipo", ["Peça", "Serviço"], horizontal=True)
-        item = st.text_input("Qual é o item?")
-        c1, c2 = st.columns(2)
-        unidade = c1.selectbox("Unidade", ["un", "kg", "litro", "metro", "hora", "par"])
-        qtd = c2.number_input("Quantidade", min_value=1, value=1)
-        
-        c_custo, c_venda = st.columns(2)
-        custo = c_custo.number_input("Custo unitário (R$)", min_value=0.0, value=0.0)
-        venda = c_venda.number_input("Venda final (R$)", min_value=0.0, value=0.0)
-        
-        submit = st.form_submit_button("Adicionar ao pedido")
-        
-    if submit:
-        d = carregar_dados("orcamentos.json")
-        d.append({"Cliente": cliente_selecionado, "Tipo": tipo, "Item": item, "Venda": venda, "Qtd": qtd, "Unidade": unidade})
-        salvar_dados("orcamentos.json", d); st.rerun()
-    
-    lista = carregar_dados("orcamentos.json")
-    itens_cliente = [i for i in lista if i['Cliente'] == cliente_selecionado]
-    
-    if itens_cliente:
-        st.table(pd.DataFrame(itens_cliente))
-        
-       # --- NOVO BLOCO PREMIUM ---
-        # --- BLOCO PREMIUM AVANÇADO ---
-        if st.button("📄 Gerar PDF Profissional"):
-            from reportlab.lib.pagesizes import A4
-            from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer
-            from reportlab.lib import colors
-            from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
-            
-            caminho = "orcamento.pdf"
-            doc = SimpleDocTemplate(caminho, pagesize=A4, rightMargin=30, leftMargin=30, topMargin=30, bottomMargin=30)
-            elementos = []
-            estilos = getSampleStyleSheet()
-
-            # Estilo Título
-            estilo_titulo = ParagraphStyle('titulo', fontSize=22, fontName='Helvetica-Bold', textColor=colors.HexColor('#2c3e50'))
-            elementos.append(Paragraph("Performance Serviços Automotivos", estilo_titulo))
-            elementos.append(Spacer(1, 5))
-            
-            # Subtítulo (Contato)
-            estilo_contato = ParagraphStyle('contato', fontSize=9, leading=12)
-            elementos.append(Paragraph("CNPJ: 64.242.276/0001-69 | Rua Nelly da Cruz Teixeira, 618", estilo_contato))
-            elementos.append(Paragraph("Foz do Iguaçu - PR | (45) 99804-2742", estilo_contato))
-            elementos.append(Spacer(1, 15))
-            
-            # Barra horizontal colorida
-            line = Table([[""]], colWidths=[535])
-            line.setStyle(TableStyle([('BACKGROUND', (0,0), (-1,-1), colors.HexColor('#2c3e50'))]))
-            elementos.append(line)
-            elementos.append(Spacer(1, 15))
-
-            # Dados do Orçamento
-            estilo_sub = ParagraphStyle('sub', fontSize=14, fontName='Helvetica-Bold')
-            elementos.append(Paragraph(f"Orçamento - {cliente_selecionado}", estilo_sub))
-            elementos.append(Spacer(1, 10))
-
-            # Tabela (Layout Profissional)
-            dados = [["Descrição", "Unid.", "Preço Unit.", "Qtd.", "Total"]]
-            total_geral = 0
-            for it in itens_cliente:
-                p = float(it.get('Venda', 0))
-                q = int(it.get('Qtd', 1))
-                t = p * q
-                total_geral += t
-                dados.append([it.get('Item', ''), it.get('Unidade', ''), f"R$ {p:.2f}", str(q), f"R$ {t:.2f}"])
-
-            tabela = Table(dados, colWidths=[200, 50, 80, 50, 90])
-            tabela.setStyle(TableStyle([
-                ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#bdc3c7')),
-                ('TEXTCOLOR', (0, 0), (-1, 0), colors.black),
-                ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
-                ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
-                ('GRID', (0, 0), (-1, -1), 0.5, colors.grey),
-            ]))
-            elementos.append(tabela)
-            
-            # Rodapé Financeiro
-            elementos.append(Spacer(1, 20))
-            estilo_total = ParagraphStyle('total', fontSize=16, fontName='Helvetica-Bold', alignment=2, textColor=colors.darkblue)
-            elementos.append(Paragraph(f"TOTAL GERAL: R$ {total_geral:.2f}", estilo_total))
-            
-            doc.build(elementos)
-            st.success("PDF gerado com alta qualidade!")
-            with open(caminho, "rb") as f:
-                st.download_button("📥 Baixar Orçamento Premium", f, "orcamento.pdf")
-# [Restante do código de Clientes, Diagnóstico e Histórico...]
+# --- PÁGINAS ---
 if st.session_state.pagina == "Clientes":
-    # (Código de clientes...)
-    pass
+    st.header("👤 Clientes")
+    # ... (seu código de clientes aqui)
+    st.table(pd.DataFrame(carregar_dados("clientes.json")))
+
+elif st.session_state.pagina == "Orçamento":
+    st.header("💰 Orçamento")
+    lista_cli = carregar_dados("clientes.json")
+    cliente = st.selectbox("Cliente", [c['Nome'] for c in lista_cli] if lista_cli else [])
+    
+    if st.button("📄 Gerar PDF"):
+        itens = [i for i in carregar_dados("orcamentos.json") if i['Cliente'] == cliente]
+        gerar_pdf_final(cliente, itens)
+        with open("orcamento.pdf", "rb") as f:
+            st.download_button("Baixar PDF", f, "orcamento.pdf")
+
 elif st.session_state.pagina == "Diagnóstico":
-    # (Código de diagnóstico...)
-    pass
+    st.header("🔧 Diagnóstico")
+    # ... (seu código de diagnóstico)
+
 elif st.session_state.pagina == "Histórico":
-    # (Código de histórico...)
-    pass
+    st.header("📋 Histórico")
+    st.table(pd.DataFrame(carregar_dados("orcamentos.json")))
