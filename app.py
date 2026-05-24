@@ -32,7 +32,7 @@ def chamar_gemini(prompt):
         return response.json()['candidates'][0]['content']['parts'][0]['text']
     except: return "Erro de comunicação com a IA."
 
-# --- FUNÇÃO PDF (Modelo solicitado) ---
+# --- FUNÇÃO PDF ---
 def gerar_pdf(cliente_info, itens_servicos, itens_pecas, total_serv, total_pecas, total_geral):
     buffer = BytesIO()
     p = canvas.Canvas(buffer, pagesize=letter)
@@ -50,6 +50,7 @@ def gerar_pdf(cliente_info, itens_servicos, itens_pecas, total_serv, total_pecas
     p.drawString(100, 660, "Informações básicas")
     p.setFont("Helvetica", 9)
     p.drawString(100, 648, f"Marca: {cliente_info['Marca']}      Modelo: {cliente_info['Modelo']}")
+    
     y = 620
     p.setFont("Helvetica-Bold", 10)
     p.drawString(100, y, "Serviços")
@@ -58,6 +59,7 @@ def gerar_pdf(cliente_info, itens_servicos, itens_pecas, total_serv, total_pecas
     for s in itens_servicos:
         p.drawString(100, y, f"{s['Peça']} | R$ {s['Venda']:.2f}")
         y -= 12
+        
     y -= 20
     p.setFont("Helvetica-Bold", 10)
     p.drawString(100, y, "Peças")
@@ -66,11 +68,13 @@ def gerar_pdf(cliente_info, itens_servicos, itens_pecas, total_serv, total_pecas
     for p_item in itens_pecas:
         p.drawString(100, y, f"{p_item['Peça']} | R$ {p_item['Venda']:.2f}")
         y -= 12
+        
     y -= 20
     p.setFont("Helvetica-Bold", 10)
     p.drawString(350, y, f"Total Serviços: R$ {total_serv:.2f}")
     p.drawString(350, y-15, f"Total Peças: R$ {total_pecas:.2f}")
     p.drawString(350, y-30, f"TOTAL GERAL: R$ {total_geral:.2f}")
+    
     p.showPage()
     p.save()
     buffer.seek(0)
@@ -78,13 +82,10 @@ def gerar_pdf(cliente_info, itens_servicos, itens_pecas, total_serv, total_pecas
 
 # --- NAVEGAÇÃO ---
 if 'pagina' not in st.session_state: st.session_state.pagina = "Início"
-
 st.title("⚙️ Oficina Pro")
 
 c1, c2, c3 = st.columns(3)
-with c1:
-    if st.button("👤 Clientes", use_container_width=True): st.session_state.pagina = "Clientes"
-with c2:
-    if st.button("🔧 Diagnóstico", use_container_width=True): st.session_state.pagina = "Diagnóstico"
-with c3:
-    if st
+if c1.button("👤 Clientes"): st.session_state.pagina = "Clientes"
+if c2.button("🔧 Diagnóstico"): st.session_state.pagina = "Diagnóstico"
+if c3.button("📋 Histórico"): st.session_state.pagina = "Histórico"
+if st.button("➕ Criar novo orçamento", type="primary"): st
