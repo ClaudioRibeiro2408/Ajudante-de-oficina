@@ -35,7 +35,7 @@ def chamar_gemini(prompt):
 st.title("⚙️ Oficina Pro | Gestão e Diagnóstico IA")
 aba1, aba2, aba3, aba4 = st.tabs(["👤 Clientes", "💰 Orçamento", "🔧 Diagnóstico", "📋 Histórico"])
 
-# ABA 1: CLIENTES (DEFINIDA)
+# ABA 1: CLIENTES
 with aba1:
     st.header("👤 Cadastro de Cliente")
     with st.form("cli_form", clear_on_submit=True):
@@ -60,7 +60,7 @@ with aba1:
     if lista_cli:
         st.table(pd.DataFrame(lista_cli))
 
-# ABA 2: ORÇAMENTO (DEFINIDA)
+# ABA 2: ORÇAMENTO
 with aba2:
     st.header("💰 Orçamento")
     lista_cli = carregar_dados("clientes.json")
@@ -85,6 +85,20 @@ with aba2:
         if not df_filtrado.empty:
             st.table(df_filtrado)
 
-# ABA 3: DIAGNÓSTICO (RESTAURADA)
+# ABA 3: DIAGNÓSTICO
 with aba3:
-    st.header("🔧 Diagn
+    st.header("🔧 Diagnóstico Técnico IA")
+    veiculo_diag = st.text_input("Veículo para diagnóstico")
+    problema_diag = st.text_area("Descreva o sintoma ou falha")
+    if st.button("Buscar Diagnóstico"):
+        if veiculo_diag and problema_diag:
+            with st.spinner("Analisando..."):
+                st.write(chamar_gemini(f"Diagnóstico para {veiculo_diag}: {problema_diag}"))
+
+# ABA 4: HISTÓRICO
+with aba4:
+    st.header("📋 Histórico Geral")
+    st.info("Aqui você poderá consultar os atendimentos anteriores.")
+    lista_orc = carregar_dados("orcamentos.json")
+    if lista_orc:
+        st.table(pd.DataFrame(lista_orc))
