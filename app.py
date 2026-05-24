@@ -68,22 +68,4 @@ if st.session_state.pagina == "Clientes":
     if lista_cli: st.table(pd.DataFrame(lista_cli))
 
 elif st.session_state.pagina == "Orçamento":
-    st.header("💰 Novo Orçamento")
-    lista_cli = carregar_dados("clientes.json")
-    nomes = [c['Nome'] for c in lista_cli]
-    cliente = st.selectbox("Selecione o Cliente", [""] + nomes)
-    with st.form("orc_form", clear_on_submit=True):
-        peca = st.text_input("Peça/Serviço")
-        venda = st.number_input("Preço R$", min_value=0.0)
-        obs = st.text_area("Observações")
-        if st.form_submit_button("Adicionar"):
-            if cliente:
-                dados = carregar_dados("orcamentos.json")
-                dados.append({"Cliente": cliente, "Peça": peca, "Venda": venda, "Obs": obs})
-                salvar_dados("orcamentos.json", dados)
-                st.rerun()
-            else: 
-                st.error("Selecione um cliente primeiro!")
-    lista_orc = carregar_dados("orcamentos.json")
-    if lista_orc: 
-        st.table(pd.
+    st.header("💰 Novo Or
