@@ -70,92 +70,48 @@ if st.session_state.pagina == "Orçamento":
     if itens_cliente:
         st.table(pd.DataFrame(itens_cliente))
         
+       # --- NOVO BLOCO PREMIUM ---
         if st.button("📄 Gerar PDF Profissional"):
-            pdf = FPDF()
-            pdf.add_page()
+            from reportlab.lib.pagesizes import A4
+            from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer
+            from reportlab.lib import colors
+            from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
             
-            # --- CABEÇALHO (Layout 2 Colunas) ---
-            # --- CABEÇALHO (Limpo para evitar erro de encoding) ---
-            # --- CABEÇALHO (Corrigido e sem emojis) ---
-            pdf.set_font("Arial", 'B', 14)
-            pdf.cell(100, 7, "Performance Servicos Automotivos", ln=0)
-            pdf.set_font("Arial", '', 9)
-            pdf.cell(0, 5, "claudiotma@gmail.com", ln=1, align='R')
-            pdf.set_font("Arial", '', 9)
-            pdf.cell(100, 5, "CNPJ: 64.242.276/0001-69", ln=0)
-            pdf.cell(0, 5, "(45) 99804-2742", ln=1, align='R')
-            pdf.cell(100, 5, "Rua Nelly da Cruz Teixeira, 618", ln=0)
-            pdf.cell(0, 5, "(45) 92000-1524", ln=1, align='R')
-            pdf.line(10, 35, 200, 35)
-            
-            # --- TÍTULO E CLIENTE ---
-            pdf.ln(10)
-            pdf.set_font("Arial", 'B', 12)
-            pdf.set_fill_color(220, 220, 220)
-            pdf.cell(0, 8, "Orcamento 005-2026", ln=True, fill=True)
-            pdf.set_font("Arial", '', 10)
-            pdf.cell(0, 6, f"Cliente: {cliente_selecionado}", ln=True)
-            pdf.cell(0, 6, "Telefone: (45) 92002-0551", ln=True)
-            
-            # --- INFORMAÇÕES BÁSICAS ---
-            pdf.ln(5)
-            pdf.set_font("Arial", 'B', 10)
-            pdf.cell(0, 6, "Informações básicas", ln=True)
-            pdf.line(10, pdf.get_y(), 200, pdf.get_y())
-            pdf.ln(2)
-            pdf.set_font("Arial", '', 9)
-            # Layout de grade para informações
-            pdf.cell(95, 6, "Marca: GM", ln=0)
-            pdf.cell(95, 6, "Modelo: Onix", ln=1)
-            pdf.cell(95, 6, "Ano: 2014", ln=0)
-            pdf.cell(95, 6, "Defeito: Vazamento de óleo", ln=1)
-            
-            # --- TABELAS ---
-            def desenhar_tabela(titulo, tipo_item):
-                pdf.ln(5)
-                pdf.set_font("Arial", 'B', 10)
-                pdf.cell(0, 7, titulo, ln=True, border='B')
-                # Cabeçalhos
-                pdf.set_font("Arial", 'B', 8)
-                pdf.cell(70, 6, "Descrição", border=0)
-                pdf.cell(20, 6, "Unid.", border=0)
-                pdf.cell(30, 6, "Preço Unit.", border=0)
-                pdf.cell(20, 6, "Qtd.", border=0)
-                pdf.cell(0, 6, "Preço", border=0, ln=1)
-                pdf.line(10, pdf.get_y(), 200, pdf.get_y())
-                
-                pdf.set_font("Arial", '', 8)
-                soma = 0
-                for it in [i for i in itens_cliente if i.get('Tipo') == tipo_item]:
-                    preco = float(it.get('Venda', 0))
-                    total_linha = preco * int(it.get('Qtd', 1))
-                    pdf.cell(70, 6, it.get('Item', ''))
-                    pdf.cell(20, 6, it.get('Unidade', ''))
-                    pdf.cell(30, 6, f"R$ {preco:.2f}")
-                    pdf.cell(20, 6, str(it.get('Qtd', '')))
-                    pdf.cell(0, 6, f"R$ {total_linha:.2f}", ln=1)
-                    soma += total_linha
-                return soma
+            caminho = "orcamento.pdf"
+            doc = SimpleDocTemplate(caminho, pagesize=A4)
+            elementos = []
+            estilos = getSampleStyleSheet()
 
-            ts = desenhar_tabela("Serviços", "Serviço")
-            tp = desenhar_tabela("Peças", "Peça")
+            # Estilo personalizado
+            titulo_estilo = ParagraphStyle('titulo', fontSize=18, alignment=1, textColor=colors.HexColor('#2c3e50'))
+            elementos.append(Paragraph("Performance Servicos Automotivos", titulo_estilo))
+            elementos.append(Spacer(1, 10))
             
-            # --- RESUMO FINAL ---
-            pdf.ln(5)
-            pdf.set_fill_color(240, 240, 240)
-            pdf.cell(160, 6, "Total Serviços", border=0, align='R')
-            pdf.cell(0, 6, f"R$ {ts:.2f}", ln=1, align='R')
-            pdf.cell(160, 6, "Total Peças", border=0, align='R')
-            pdf.cell(0, 6, f"R$ {tp:.2f}", ln=1, align='R')
-            pdf.set_font("Arial", 'B', 10)
-            pdf.cell(160, 8, "TOTAL", border=1, align='R', fill=True)
-            pdf.cell(0, 8, f"R$ {ts + tp:.2f}", border=1, ln=1, align='R', fill=True)
-            
-            pdf.output("orcamento.pdf")
-            st.success("PDF gerado!")
-            with open("orcamento.pdf", "rb") as f:
-                st.download_button("📥 Baixar PDF", f, "orcamento.pdf")
+            # Dados da tabela
+            dados = [["Descricao", "Unid.", "Preco Unit.", "Qtd.", "Total"]]
+            total_geral = 0
+            for it in itens_cliente:
+                p = float(it.get('Venda', 0))
+                q = int(it.get('Qtd', 1))
+                t = p * q
+                total_geral += t
+                dados.append([it.get('Item', ''), it.get('Unidade', ''), f"R$ {p:.2f}", str(q), f"R$ {t:.2f}"])
 
+            tabela = Table(dados, colWidths=[180, 50, 80, 50, 80])
+            tabela.setStyle(TableStyle([
+                ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#2c3e50')),
+                ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
+                ('GRID', (0, 0), (-1, -1), 0.5, colors.grey),
+                ('ROWBACKGROUNDS', (0, 1), (-1, -1), [colors.white, colors.lightgrey]),
+            ]))
+            elementos.append(tabela)
+            elementos.append(Spacer(1, 20))
+            elementos.append(Paragraph(f"TOTAL GERAL: R$ {total_geral:.2f}", ParagraphStyle('total', fontSize=14, alignment=2)))
+            
+            doc.build(elementos)
+            st.success("PDF gerado com sucesso!")
+            with open(caminho, "rb") as f:
+                st.download_button("Baixar PDF Premium", f, "orcamento.pdf")
 # [Restante do código de Clientes, Diagnóstico e Histórico...]
 if st.session_state.pagina == "Clientes":
     # (Código de clientes...)
