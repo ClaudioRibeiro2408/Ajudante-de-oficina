@@ -62,9 +62,7 @@ elif st.session_state.pagina == "Orçamento":
         tipo = st.radio("Tipo", ["Peça", "Serviço"], horizontal=True)
         item = st.text_input("Qual é o item?")
         detalhes = st.text_area("Detalhes (opcional)")
-        
         c1, c2 = st.columns(2)
-        # Seleção de unidade padronizada
         unidade = c1.selectbox("Unidade de medida", ["un", "kg", "litro", "metro", "hora", "par"])
         qtd = c2.number_input("Quantidade", min_value=1, value=1)
         
@@ -82,25 +80,4 @@ elif st.session_state.pagina == "Orçamento":
             cod_barras = st.text_input("Código de barras")
             cod_int = st.text_input("Código interno")
             
-        salvar_cat = st.checkbox("Salvar no meu catálogo")
-        submit = st.form_submit_button("Adicionar ao pedido")
-        
-    if submit:
-        if cliente and item:
-            d = carregar_dados("orcamentos.json")
-            d.append({
-                "Cliente": cliente, "Tipo": tipo, "Item": item, "Venda": venda, 
-                "Qtd": qtd, "Unidade": unidade, "Custo": custo, "Marca": marca, 
-                "Margem": f"{((venda - custo) / venda * 100) if venda > 0 else 0:.2f}%"
-            })
-            salvar_dados("orcamentos.json", d)
-            
-            if salvar_cat:
-                cat = carregar_dados("catalogo.json")
-                cat.append({"Tipo": tipo, "Nome": item, "Custo": custo, "Venda": venda, "Marca": marca, "Unidade": unidade})
-                salvar_dados("catalogo.json", cat)
-            st.rerun()
-        else:
-            st.error("Por favor, selecione um cliente e descreva o item.")
-            
-    st.table(pd.DataFrame([i for i in carregar_dados("orcamentos.json") if i['Cliente'] == cliente]))
+        salvar_cat = st.checkbox("
