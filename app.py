@@ -75,15 +75,16 @@ if st.session_state.pagina == "Orçamento":
             pdf.add_page()
             
             # --- CABEÇALHO (Layout 2 Colunas) ---
+            # --- CABEÇALHO (Limpo para evitar erro de encoding) ---
             pdf.set_font("Arial", 'B', 14)
-            pdf.cell(100, 7, "Performance Serviços Automotivos", ln=0)
+            pdf.cell(100, 7, "Performance Servicos Automotivos", ln=0)
             pdf.set_font("Arial", '', 9)
-            pdf.cell(0, 5, "✉ claudiotma@gmail.com", ln=1, align='R')
+            pdf.cell(0, 5, "claudiotma@gmail.com", ln=1, align='R')
             pdf.set_font("Arial", '', 9)
             pdf.cell(100, 5, "CNPJ: 64.242.276/0001-69", ln=0)
-            pdf.cell(0, 5, "☎ +55 (45) 99804-2742", ln=1, align='R')
+            pdf.cell(0, 5, "(45) 99804-2742", ln=1, align='R')
             pdf.cell(100, 5, "Rua Nelly da Cruz Teixeira, 618", ln=0)
-            pdf.cell(0, 5, "☎ +55 (45) 92000-1524", ln=1, align='R')
+            pdf.cell(0, 5, "(45) 92000-1524", ln=1, align='R')
             pdf.line(10, 35, 200, 35)
             
             # --- TÍTULO E CLIENTE ---
