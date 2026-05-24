@@ -79,8 +79,7 @@ elif st.session_state.pagina == "Orçamento":
     with st.form("orc_form", clear_on_submit=True):
         peca = st.text_input("Peça/Serviço")
         venda = st.number_input("Preço de Venda R$", min_value=0.0)
-        submit = st.form_submit_button("Adicionar")
-        if submit:
+        if st.form_submit_button("Adicionar"):
             if cliente:
                 dados = carregar_dados("orcamentos.json")
                 dados.append({"Cliente": cliente, "Peça": peca, "Venda": venda})
@@ -106,4 +105,23 @@ elif st.session_state.pagina == "Histórico":
     orcamentos = carregar_dados("orcamentos.json")
     total_vendas = sum(item.get("Venda", 0) for item in orcamentos)
     
-    col_a, col_b =
+    col_a, col_b = st.columns(2)
+    col_a.metric("Total Faturado", f"R$ {total_vendas:.2f}")
+    
+    with st.expander("➕ Lançar Nova Despesa"):
+        with st.form("despesa_form", clear_on_submit=True):
+            descricao = st.text_input("Descrição da despesa")
+            valor = st.number_input("Valor R$", min_value=0.0)
+            if st.form_submit_button("Registrar Despesa"):
+                despesas = carregar_dados("despesas.json")
+                despesas.append({"Descrição": descricao, "Valor": valor})
+                salvar_dados("despesas.json", despesas)
+                st.rerun()
+
+    despesas = carregar_dados("despesas.json")
+    total_despesas = sum(d.get("Valor", 0) for d in despesas)
+    lucro = total_vendas - total_despesas
+    col_b.metric("Lucro", f"R$ {lucro:.2f}")
+    
+    st.subheader("Histórico de Orçamentos")
+    if orcamentos: st.table
