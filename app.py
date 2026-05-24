@@ -94,11 +94,18 @@ elif st.session_state.pagina == "Orçamento":
                 st.rerun()
             else: 
                 st.error("Selecione um cliente primeiro!")
-    lista_orc = carregar_dados("orcamentos.json")
-    itens_filtrados = [i for i in lista_orc if i['Cliente'] == cliente]
-    if itens_filtrados: 
-        df = pd.DataFrame(itens_filtrados)
-        st.table(df[['Tipo', 'Peça', 'Venda', 'Obs']])
+   # Carrega o catálogo
+    catalogo = carregar_dados("catalogo.json")
+    # Filtra nomes baseados no catálogo
+    lista_nomes = [f"{i['Tipo']}: {i['Nome']}" for i in catalogo]
+    
+    selected_item = st.selectbox("Escolha do Catálogo", [""] + lista_nomes)
+    
+    # Preenche automático se escolher algo
+    item_encontrado = next((i for i in catalogo if f"{i['Tipo']}: {i['Nome']}" == selected_item), None)
+    
+    peca = st.text_input("Descrição", value=item_encontrado['Nome'] if item_encontrado else "")
+    venda = st.number_input("Preço R$", value=item_encontrado['Preço'] if item_encontrado else 0.0)
 
 elif st.session_state.pagina == "Diagnóstico":
     st.header("🔧 Diagnóstico Técnico IA")
