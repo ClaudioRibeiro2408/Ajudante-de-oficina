@@ -22,6 +22,7 @@ def salvar_dados(arquivo, dados):
         json.dump(dados, f, ensure_ascii=False, indent=4)
 
 # --- FUNÇÃO PDF ---
+# --- FUNÇÃO PDF CORRIGIDA ---
 def gerar_pdf(cliente_info, itens_servicos, itens_pecas, total_serv, total_pecas, total_geral):
     buffer = BytesIO()
     p = canvas.Canvas(buffer, pagesize=letter)
@@ -66,4 +67,5 @@ def gerar_pdf(cliente_info, itens_servicos, itens_pecas, total_serv, total_pecas
     
     p.showPage()
     p.save()
-    buffer.
+    buffer.seek(0)
+    return buffer
