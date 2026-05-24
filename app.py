@@ -6,81 +6,62 @@ from reportlab.lib.pagesizes import letter
 from reportlab.pdfgen import canvas
 from io import BytesIO
 
+# Configuração simples
 st.set_page_config(page_title="Oficina Pro", layout="wide")
 
-# --- FUNÇÕES DE PERSISTÊNCIA ---
+# --- FUNÇÕES DE SEGURANÇA ---
 def carregar_dados(arquivo):
-    if not os.path.exists(arquivo): return []
-    with open(arquivo, "r", encoding="utf-8") as f:
-        try: return json.load(f)
-        except: return []
+    if not os.path.exists(arquivo): 
+        return []
+    try:
+        with open(arquivo, "r", encoding="utf-8") as f:
+            return json.load(f)
+    except:
+        return []
 
 def salvar_dados(arquivo, dados):
     with open(arquivo, "w", encoding="utf-8") as f:
         json.dump(dados, f, ensure_ascii=False, indent=4)
 
-# --- FUNÇÃO PDF ---
-def gerar_pdf(cliente_nome, dados_orcamento):
-    buffer = BytesIO()
-    p = canvas.Canvas(buffer, pagesize=letter)
-    p.setFont("Helvetica-Bold", 16)
-    p.drawString(50, 750, f"ORÇAMENTO - {cliente_nome}")
-    p.setFont("Helvetica", 10)
-    
-    y = 700
-    total = 0
-    for item in dados_orcamento:
-        p.drawString(50, y, f"{item.get('Peça')} | Qtd: {item.get('Qtd')} | MO: R${item.get('Mão de Obra', 0):.2f} | Venda: R${item.get('Venda', 0):.2f}")
-        total += (item.get('Venda', 0) * item.get('Qtd', 0)) + item.get('Mão de Obra', 0)
-        y -= 20
-    
-    p.drawString(50, y - 20, f"TOTAL: R$ {total:.2f}")
-    p.save()
-    buffer.seek(0)
-    return buffer
-
 # --- INTERFACE ---
+st.title("⚙️ Oficina Pro")
 aba1, aba2 = st.tabs(["👤 Clientes", "💰 Orçamento"])
 
-# ABA 1: CLIENTES
+# ABA 1
 with aba1:
     st.header("👤 Clientes")
     with st.form("cli_form", clear_on_submit=True):
-        c1, c2 = st.columns(2)
-        nome = c1.text_input("Nome do Cliente")
-        placa = c2.text_input("Placa do Veículo")
-        if st.form_submit_button("Salvar"):
+        nome = st.text_input("Nome do Cliente")
+        placa = st.text_input("Placa")
+        if st.form_submit_button("Salvar Cliente"):
             dados = carregar_dados("clientes.json")
             dados.append({"Nome": nome, "Placa": placa})
             salvar_dados("clientes.json", dados)
             st.rerun()
-    st.table(pd.DataFrame(carregar_dados("clientes.json")))
+    
+    lista_cli = carregar_dados("clientes.json")
+    if lista_cli:
+        st.table(pd.DataFrame(lista_cli))
 
-# ABA 2: ORÇAMENTO
+# ABA 2
 with aba2:
     st.header("💰 Orçamento")
-    clientes = [c['Nome'] for c in carregar_dados("clientes.json")]
-    
-    cliente_selecionado = st.selectbox("Selecione o Cliente", [""] + clientes)
+    lista_cli = carregar_dados("clientes.json")
+    nomes = [c['Nome'] for c in lista_cli]
+    cliente = st.selectbox("Selecione o Cliente", [""] + nomes)
     
     with st.form("orc_form", clear_on_submit=True):
-        c1, c2 = st.columns(2)
-        peca = c1.text_input("Peça/Serviço")
-        v_venda = c1.number_input("Preço Venda", min_value=0.0)
-        qtd = c2.number_input("Qtd", value=1.0)
-        mo = c2.number_input("Mão de Obra", value=0.0)
-        
+        peca = st.text_input("Peça/Serviço")
+        venda = st.number_input("Preço", min_value=0.0)
         if st.form_submit_button("Adicionar"):
-            if cliente_selecionado:
+            if cliente:
                 dados = carregar_dados("orcamentos.json")
-                dados.append({"Cliente": cliente_selecionado, "Peça": peca, "Venda": v_venda, "Qtd": qtd, "Mão de Obra": mo})
+                dados.append({"Cliente": cliente, "Peça": peca, "Venda": venda})
                 salvar_dados("orcamentos.json", dados)
                 st.rerun()
             else:
-                st.error("Selecione um cliente primeiro!")
-
-    lista = [i for i in carregar_dados("orcamentos.json") if i['Cliente'] == cliente_selecionado]
-    if lista:
-        st.table(pd.DataFrame(lista))
-        if st.button("Gerar PDF"):
-            st.download_button("Baixar", gerar_pdf(cliente_selecionado, lista), "orcamento.pdf", "application/pdf")
+                st.error("Selecione o cliente primeiro!")
+    
+    lista_orc = carregar_dados("orcamentos.json")
+    if lista_orc:
+        st.table(pd.DataFrame(lista_orc))
