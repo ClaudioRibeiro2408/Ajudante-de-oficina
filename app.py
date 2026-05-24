@@ -6,18 +6,15 @@ from reportlab.lib.pagesizes import letter
 from reportlab.pdfgen import canvas
 from io import BytesIO
 
-# Configuração simples
 st.set_page_config(page_title="Oficina Pro", layout="wide")
 
-# --- FUNÇÕES DE SEGURANÇA ---
+# --- FUNÇÕES ---
 def carregar_dados(arquivo):
-    if not os.path.exists(arquivo): 
-        return []
+    if not os.path.exists(arquivo): return []
     try:
         with open(arquivo, "r", encoding="utf-8") as f:
             return json.load(f)
-    except:
-        return []
+    except: return []
 
 def salvar_dados(arquivo, dados):
     with open(arquivo, "w", encoding="utf-8") as f:
@@ -27,23 +24,35 @@ def salvar_dados(arquivo, dados):
 st.title("⚙️ Oficina Pro")
 aba1, aba2 = st.tabs(["👤 Clientes", "💰 Orçamento"])
 
-# ABA 1
+# ABA 1: CLIENTES COM NOVOS CAMPOS
 with aba1:
-    st.header("👤 Clientes")
+    st.header("👤 Cadastro de Cliente")
     with st.form("cli_form", clear_on_submit=True):
-        nome = st.text_input("Nome do Cliente")
-        placa = st.text_input("Placa")
+        col1, col2 = st.columns(2)
+        nome = col1.text_input("Nome do Cliente")
+        telefone = col1.text_input("Telefone")
+        marca = col2.text_input("Marca do Veículo")
+        modelo = col2.text_input("Modelo do Veículo")
+        placa = col2.text_input("Placa")
+        
         if st.form_submit_button("Salvar Cliente"):
-            dados = carregar_dados("clientes.json")
-            dados.append({"Nome": nome, "Placa": placa})
-            salvar_dados("clientes.json", dados)
-            st.rerun()
+            if nome:
+                dados = carregar_dados("clientes.json")
+                dados.append({
+                    "Nome": nome, "Telefone": telefone, 
+                    "Marca": marca, "Modelo": modelo, "Placa": placa
+                })
+                salvar_dados("clientes.json", dados)
+                st.success("Cliente salvo!")
+                st.rerun()
+            else:
+                st.error("O Nome é obrigatório.")
     
     lista_cli = carregar_dados("clientes.json")
     if lista_cli:
         st.table(pd.DataFrame(lista_cli))
 
-# ABA 2
+# ABA 2: ORÇAMENTO (MANTIDO)
 with aba2:
     st.header("💰 Orçamento")
     lista_cli = carregar_dados("clientes.json")
@@ -64,4 +73,7 @@ with aba2:
     
     lista_orc = carregar_dados("orcamentos.json")
     if lista_orc:
-        st.table(pd.DataFrame(lista_orc))
+        # Filtra apenas do cliente selecionado
+        df_filtrado = pd.DataFrame([i for i in lista_orc if i['Cliente'] == cliente])
+        if not df_filtrado.empty:
+            st.table(df_filtrado)
