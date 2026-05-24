@@ -57,43 +57,23 @@ elif st.session_state.pagina == "Orçamento":
     st.header("💰 Novo Orçamento")
     lista_cli = carregar_dados("clientes.json")
     cliente = st.selectbox("Selecione o Cliente", [""] + [c['Nome'] for c in lista_cli])
+    
     with st.form("orc_form", clear_on_submit=True):
         tipo = st.radio("Tipo", ["Peça", "Serviço"], horizontal=True)
-        item = st.text_input("Descrição")
+        item = st.text_input("Qual é o item?")
+        detalhes = st.text_area("Detalhes (opcional)")
         c1, c2 = st.columns(2)
-        qtd = c1.number_input("Qtd", min_value=1, value=1)
-        venda = c2.number_input("Preço R$", min_value=0.0)
-        if st.form_submit_button("Adicionar"):
-            d = carregar_dados("orcamentos.json")
-            d.append({"Cliente": cliente, "Tipo": tipo, "Item": item, "Venda": venda, "Qtd": qtd})
-            salvar_dados("orcamentos.json", d); st.rerun()
-    st.table(pd.DataFrame([i for i in carregar_dados("orcamentos.json") if i['Cliente'] == cliente]))
-
-elif st.session_state.pagina == "Diagnóstico":
-    st.header("🔧 Diagnóstico Técnico IA")
-    v_diag = st.text_input("Veículo")
-    p_diag = st.text_area("Descreva o sintoma")
-    if st.button("Analisar com IA"):
-        with st.spinner("Consultando..."):
-            st.write(chamar_gemini(f"Diagnóstico para {v_diag}: {p_diag}"))
-
-elif st.session_state.pagina == "Histórico":
-    st.header("📋 Financeiro & Histórico")
-    orc = carregar_dados("orcamentos.json")
-    desp = carregar_dados("despesas.json")
-    tot_v = sum(float(i.get("Venda", 0)) for i in orc)
-    tot_d = sum(float(i.get("Valor", 0)) for i in desp)
-    col_a, col_b = st.columns(2)
-    col_a.metric("Total Faturado", f"R$ {tot_v:.2f}")
-    col_b.metric("Lucro Bruto", f"R$ {tot_v - tot_d:.2f}")
-    with st.expander("➕ Lançar Despesa"):
-        with st.form("desp_form", clear_on_submit=True):
-            d_desc = st.text_input("Descrição")
-            d_val = st.number_input("Valor")
-            if st.form_submit_button("Salvar"):
-                desp.append({"Descrição": d_desc, "Valor": d_val})
-                salvar_dados("despesas.json", desp); st.rerun()
-    st.table(pd.DataFrame(orc))
-
-if st.session_state.pagina != "Início":
-    if st.button("⬅️ Voltar"): st.session_state.pagina = "Início"; st.rerun()
+        unidade = c1.text_input("Unidade de medida")
+        qtd = c2.number_input("Quantidade", min_value=1, value=1)
+        
+        st.subheader("Custo & Lucro")
+        c_custo, c_venda = st.columns(2)
+        custo = c_custo.number_input("Custo unitário (R$)", min_value=0.0, value=0.0)
+        venda = c_venda.number_input("Preço de venda final (R$)", min_value=0.0, value=0.0)
+        
+        if custo > 0 and venda > 0:
+            margem = ((venda - custo) / venda) * 100
+            st.info(f"💰 Margem de lucro atual: **{margem:.2f}%**")
+        
+        with st.expander("Outros detalhes"):
+            marca = st.text_input("Marca")
