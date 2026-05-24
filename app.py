@@ -72,13 +72,14 @@ elif st.session_state.pagina == "Orçamento":
     nomes = [c['Nome'] for c in lista_cli]
     cliente = st.selectbox("Selecione o Cliente", [""] + nomes)
     with st.form("orc_form", clear_on_submit=True):
+        tipo = st.radio("Tipo do item", ["Serviço", "Peça"], horizontal=True)
         peca = st.text_input("Peça/Serviço")
         venda = st.number_input("Preço R$", min_value=0.0)
         obs = st.text_area("Observações")
         if st.form_submit_button("Adicionar"):
             if cliente:
                 dados = carregar_dados("orcamentos.json")
-                dados.append({"Cliente": cliente, "Peça": peca, "Venda": venda, "Obs": obs})
+                dados.append({"Cliente": cliente, "Peça": peca, "Venda": venda, "Obs": obs, "Tipo": tipo})
                 salvar_dados("orcamentos.json", dados)
                 st.rerun()
             else: 
