@@ -77,3 +77,31 @@ elif st.session_state.pagina == "Orçamento":
         
         with st.expander("Outros detalhes"):
             marca = st.text_input("Marca")
+            cod_barras = st.text_input("Código de barras")
+            cod_int = st.text_input("Código interno")
+            
+        salvar_cat = st.checkbox("Salvar no meu catálogo")
+        
+        # O botão DEVE estar dentro do 'with st.form'
+        submit = st.form_submit_button("Adicionar ao pedido")
+        
+    # Processamento FORA do with st.form, mas validando o clique do botão
+    if submit:
+        if cliente and item:
+            d = carregar_dados("orcamentos.json")
+            d.append({
+                "Cliente": cliente, "Tipo": tipo, "Item": item, "Venda": venda, 
+                "Qtd": qtd, "Custo": custo, "Marca": marca, 
+                "Margem": f"{((venda - custo) / venda * 100) if venda > 0 else 0:.2f}%"
+            })
+            salvar_dados("orcamentos.json", d)
+            
+            if salvar_cat:
+                cat = carregar_dados("catalogo.json")
+                cat.append({"Tipo": tipo, "Nome": item, "Custo": custo, "Venda": venda, "Marca": marca})
+                salvar_dados("catalogo.json", cat)
+            st.rerun()
+        else:
+            st.error("Por favor, selecione um cliente e descreva o item.")
+            
+    st.table(pd.DataFrame([i for i in carregar_dados("orcamentos.json") if i['Cliente'] == cliente]))
