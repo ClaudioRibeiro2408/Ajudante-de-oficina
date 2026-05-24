@@ -47,7 +47,6 @@ if st.button("➕ Criar novo orçamento", use_container_width=True, type="primar
 st.divider()
 
 # --- PÁGINAS ---
-
 if st.session_state.pagina == "Clientes":
     st.header("👤 Cadastro de Cliente")
     with st.form("cli_form", clear_on_submit=True):
@@ -68,4 +67,55 @@ if st.session_state.pagina == "Clientes":
     if lista_cli: st.table(pd.DataFrame(lista_cli))
 
 elif st.session_state.pagina == "Orçamento":
-    st.header("💰 Novo Or
+    st.header("💰 Novo Orçamento")
+    lista_cli = carregar_dados("clientes.json")
+    nomes = [c['Nome'] for c in lista_cli]
+    cliente = st.selectbox("Selecione o Cliente", [""] + nomes)
+    with st.form("orc_form", clear_on_submit=True):
+        peca = st.text_input("Peça/Serviço")
+        venda = st.number_input("Preço R$", min_value=0.0)
+        obs = st.text_area("Observações")
+        if st.form_submit_button("Adicionar"):
+            if cliente:
+                dados = carregar_dados("orcamentos.json")
+                dados.append({"Cliente": cliente, "Peça": peca, "Venda": venda, "Obs": obs})
+                salvar_dados("orcamentos.json", dados)
+                st.rerun()
+            else: 
+                st.error("Selecione um cliente primeiro!")
+    lista_orc = carregar_dados("orcamentos.json")
+    itens_filtrados = [i for i in lista_orc if i['Cliente'] == cliente]
+    if itens_filtrados: 
+        st.table(pd.DataFrame(itens_filtrados))
+
+elif st.session_state.pagina == "Diagnóstico":
+    st.header("🔧 Diagnóstico Técnico IA")
+    v_diag = st.text_input("Veículo")
+    p_diag = st.text_area("Descreva o sintoma")
+    if st.button("Analisar com IA"):
+        if v_diag and p_diag:
+            with st.spinner("Consultando..."):
+                st.write(chamar_gemini(f"Diagnóstico para {v_diag}: {p_diag}"))
+
+elif st.session_state.pagina == "Histórico":
+    st.header("💰 Financeiro & Histórico")
+    orcamentos = carregar_dados("orcamentos.json")
+    despesas = carregar_dados("despesas.json")
+    total_vendas = sum(float(item.get("Venda", 0)) for item in orcamentos) if orcamentos else 0.0
+    total_despesas = sum(float(d.get("Valor", 0)) for d in despesas) if despesas else 0.0
+    col_a, col_b = st.columns(2)
+    col_a.metric("Total Faturado", f"R$ {total_vendas:.2f}")
+    col_b.metric("Lucro", f"R$ {total_vendas - total_despesas:.2f}")
+    with st.expander("➕ Lançar Despesa"):
+        with st.form("desp_form", clear_on_submit=True):
+            d_desc = st.text_input("Descrição")
+            d_val = st.number_input("Valor", min_value=0.0)
+            if st.form_submit_button("Salvar"):
+                despesas.append({"Descrição": d_desc, "Valor": d_val})
+                salvar_dados("despesas.json", despesas)
+                st.rerun()
+    st.subheader("Histórico de Orçamentos")
+    if orcamentos: st.table(pd.DataFrame(orcamentos))
+
+if st.session_state.pagina != "Início":
+    if st.button("⬅️ Voltar"): st.session_state.pagina = "Início"; st.rerun()
