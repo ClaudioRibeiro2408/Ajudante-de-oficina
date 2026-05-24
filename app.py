@@ -1,29 +1,30 @@
 import streamlit as st
 
+# Configuração básica
 st.set_page_config(page_title="Oficina Pro", layout="centered")
+
+# Cabeçalho
 st.title("⚙️ Oficina Pro")
+st.subheader("Performance Serviços Automotivos")
 
-veiculo = st.text_input("Modelo do carro:")
-sintoma = st.text_area("Descreva o sintoma:")
+# Formulário de entrada simples
+st.divider()
+st.write("### Novo Diagnóstico")
 
-if st.button("Analisar"):
-    s = sintoma.lower()
-    
-    # Lista de verificações
-    encontrou = False
-    
-    if "freio" in s:
-        st.write("✅ **Verificação de Freio:** Pastilhas, discos e fluído.")
-        encontrou = True
-    if "motor" in s:
-        st.write("✅ **Verificação de Motor:** Velas, bobinas e bicos.")
-        encontrou = True
-    if "suspensão" in s or "barulho" in s:
-        st.write("✅ **Verificação de Suspensão:** Buchas, bieletas e amortecedores.")
-        encontrou = True
-    if "partida" in s or "bateria" in s:
-        st.write("✅ **Verificação de Partida:** Bateria, motor de arranque e alternador.")
-        encontrou = True
+modelo_carro = st.text_input("Modelo do veículo:")
+data_servico = st.date_input("Data:")
+descricao_problema = st.text_area("Descrição do problema:")
 
-    if not encontrou:
-        st.warning("Não identifiquei o problema nas categorias comuns. Use o scanner para leitura de erros (DTCs).")
+# Botão que apenas exibe o que você digitou
+if st.button("Registrar Diagnóstico"):
+    if modelo_carro and descricao_problema:
+        st.success("Diagnóstico registrado com sucesso!")
+        st.write(f"**Veículo:** {modelo_carro}")
+        st.write(f"**Data:** {data_servico}")
+        st.write(f"**Descrição:** {descricao_problema}")
+    else:
+        st.error("Por favor, preencha o modelo e a descrição.")
+
+# Rodapé
+st.divider()
+st.caption("Foz do Iguaçu - PR")
