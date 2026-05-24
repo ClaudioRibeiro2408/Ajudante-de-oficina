@@ -65,7 +65,17 @@ if st.session_state.pagina == "Clientes":
                 st.rerun()
     lista_cli = carregar_dados("clientes.json")
     if lista_cli: st.table(pd.DataFrame(lista_cli))
-
+elif st.session_state.pagina == "Catálogo":
+    st.header("📦 Cadastro de Peças/Serviços")
+    with st.form("cat_form", clear_on_submit=True):
+        tipo_item = st.radio("Tipo", ["Peça", "Serviço"])
+        nome_item = st.text_input("Nome do Item")
+        preco_item = st.number_input("Preço Sugerido R$", min_value=0.0)
+        if st.form_submit_button("Salvar no Catálogo"):
+            cat = carregar_dados("catalogo.json")
+            cat.append({"Tipo": tipo_item, "Nome": nome_item, "Preço": preco_item})
+            salvar_dados("catalogo.json", cat)
+            st.success("Item salvo!")
 elif st.session_state.pagina == "Orçamento":
     st.header("💰 Novo Orçamento")
     lista_cli = carregar_dados("clientes.json")
