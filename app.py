@@ -76,6 +76,7 @@ if st.session_state.pagina == "Orçamento":
             
             # --- CABEÇALHO (Layout 2 Colunas) ---
             # --- CABEÇALHO (Limpo para evitar erro de encoding) ---
+            # --- CABEÇALHO (Corrigido e sem emojis) ---
             pdf.set_font("Arial", 'B', 14)
             pdf.cell(100, 7, "Performance Servicos Automotivos", ln=0)
             pdf.set_font("Arial", '', 9)
@@ -91,10 +92,10 @@ if st.session_state.pagina == "Orçamento":
             pdf.ln(10)
             pdf.set_font("Arial", 'B', 12)
             pdf.set_fill_color(220, 220, 220)
-            pdf.cell(0, 8, "Orçamento 005-2026", ln=True, fill=True)
+            pdf.cell(0, 8, "Orcamento 005-2026", ln=True, fill=True)
             pdf.set_font("Arial", '', 10)
             pdf.cell(0, 6, f"Cliente: {cliente_selecionado}", ln=True)
-            pdf.cell(0, 6, "📞 +55 (45) 92002-0551", ln=True)
+            pdf.cell(0, 6, "Telefone: (45) 92002-0551", ln=True)
             
             # --- INFORMAÇÕES BÁSICAS ---
             pdf.ln(5)
