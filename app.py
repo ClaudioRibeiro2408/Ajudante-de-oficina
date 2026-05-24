@@ -3,6 +3,7 @@ import json
 import os
 import pandas as pd
 import requests
+from fpdf import FPDF
 
 st.set_page_config(page_title="Oficina Pro", layout="centered")
 
@@ -56,7 +57,7 @@ if st.session_state.pagina == "Clientes":
 elif st.session_state.pagina == "Orçamento":
     st.header("💰 Novo Orçamento")
     lista_cli = carregar_dados("clientes.json")
-    cliente = st.selectbox("Selecione o Cliente", [""] + [c['Nome'] for c in lista_cli])
+    cliente_selecionado = st.selectbox("Selecione o Cliente", [""] + [c['Nome'] for c in lista_cli])
     
     with st.form("orc_form", clear_on_submit=True):
         tipo = st.radio("Tipo", ["Peça", "Serviço"], horizontal=True)
@@ -84,24 +85,37 @@ elif st.session_state.pagina == "Orçamento":
         submit = st.form_submit_button("Adicionar ao pedido")
         
     if submit:
-        if cliente and item:
+        if cliente_selecionado and item:
             d = carregar_dados("orcamentos.json")
             d.append({
-                "Cliente": cliente, "Tipo": tipo, "Item": item, "Venda": venda, 
+                "Cliente": cliente_selecionado, "Tipo": tipo, "Item": item, "Venda": venda, 
                 "Qtd": qtd, "Unidade": unidade, "Custo": custo, "Marca": marca, 
                 "Margem": f"{((venda - custo) / venda * 100) if venda > 0 else 0:.2f}%"
             })
-            salvar_dados("orcamentos.json", d)
-            if salvar_cat:
-                cat = carregar_dados("catalogo.json")
-                cat.append({"Tipo": tipo, "Nome": item, "Custo": custo, "Venda": venda, "Marca": marca, "Unidade": unidade})
-                salvar_dados("catalogo.json", cat)
-            st.rerun()
+            salvar_dados("orcamentos.json", d); st.rerun()
         else:
             st.error("Selecione um cliente e descreva o item.")
     
     lista = carregar_dados("orcamentos.json")
-    if lista: st.table(pd.DataFrame([i for i in lista if i['Cliente'] == cliente]))
+    itens_cliente = [i for i in lista if i['Cliente'] == cliente_selecionado]
+    if itens_cliente:
+        st.table(pd.DataFrame(itens_cliente))
+        
+        # Bloco de Finalização
+        if st.button("📄 Gerar PDF e Finalizar"):
+            pdf = FPDF()
+            pdf.add_page()
+            pdf.set_font("Arial", 'B', 16)
+            pdf.cell(200, 10, txt=f"Orcamento: {cliente_selecionado}", ln=True, align='C')
+            pdf.set_font("Arial", size=12)
+            for it in itens_cliente:
+                pdf.cell(200, 10, txt=f"{it['Item']} - {it['Qtd']} {it['Unidade']} | R$ {it['Venda']}", ln=True)
+            pdf.output("orcamento.pdf")
+            st.success("PDF Gerado com sucesso!")
+            
+            # Link WhatsApp
+            msg = f"Ola, segue o orcamento para {cliente_selecionado}."
+            st.link_button("Enviar via WhatsApp", f"https://wa.me/?text={msg}")
 
 elif st.session_state.pagina == "Diagnóstico":
     st.header("🔧 Diagnóstico Técnico IA")
@@ -115,19 +129,4 @@ elif st.session_state.pagina == "Histórico":
     st.header("📋 Financeiro & Histórico")
     orc = carregar_dados("orcamentos.json")
     desp = carregar_dados("despesas.json")
-    tot_v = sum(float(i.get("Venda", 0)) for i in orc)
-    tot_d = sum(float(i.get("Valor", 0)) for i in desp)
-    col_a, col_b = st.columns(2)
-    col_a.metric("Total Faturado", f"R$ {tot_v:.2f}")
-    col_b.metric("Lucro Bruto", f"R$ {tot_v - tot_d:.2f}")
-    with st.expander("➕ Lançar Despesa"):
-        with st.form("desp_form", clear_on_submit=True):
-            d_desc = st.text_input("Descrição")
-            d_val = st.number_input("Valor")
-            if st.form_submit_button("Salvar Despesa"):
-                desp.append({"Descrição": d_desc, "Valor": d_val})
-                salvar_dados("despesas.json", desp); st.rerun()
-    st.table(pd.DataFrame(orc))
-
-if st.session_state.pagina != "Início":
-    if st.button("⬅️ Voltar"): st.session_state.pagina = "Início"; st.rerun()
+    tot_v = sum(float(
