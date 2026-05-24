@@ -21,21 +21,55 @@ def salvar_dados(arquivo, dados):
 # --- FUNÇÃO DE GERAÇÃO DE PDF (Canvas Profissional) ---
 def gerar_pdf_final(cliente_nome, itens, arquivo="orcamento.pdf"):
     c = canvas.Canvas(arquivo, pagesize=A4)
-    # Cabeçalho
-    c.setFont("Helvetica-Bold", 14)
-    c.drawString(50, 800, "Performance Serviços Automotivos")
+    w, h = A4
+    
+    # 1. CABEÇALHO
+    c.setFont("Helvetica-Bold", 16)
+    c.drawString(50, h - 50, "Performance Serviços Automotivos")
     c.setFont("Helvetica", 9)
-    c.drawString(50, 785, "64.242.276/0001-69 | Rua Nelly da Cruz Teixeira, 618")
-    c.drawString(50, 773, "Foz do Iguaçu - PR | (45) 99804-2742")
-    c.line(50, 760, 550, 760)
-    # Conteúdo
+    c.drawString(50, h - 65, "64.242.276/0001-69 | Rua Nelly da Cruz Teixeira, 618")
+    c.drawString(50, h - 77, "Foz do Iguaçu - PR | (45) 99804-2742")
+    c.line(50, h - 85, 550, h - 85)
+    
+    # 2. DADOS DO CLIENTE
     c.setFont("Helvetica-Bold", 12)
-    c.drawString(50, 730, f"Orçamento para: {cliente_nome}")
+    c.drawString(50, h - 110, f"Cliente: {cliente_nome}")
+    c.line(50, h - 115, 550, h - 115)
+    
+    # 3. TABELA (Cabeçalho da Tabela)
+    y = h - 140
+    c.setFont("Helvetica-Bold", 10)
+    c.rect(50, y - 10, 500, 20, fill=1, fillColor=colors.lightgrey)
+    c.drawString(60, y - 3, "DESCRIÇÃO")
+    c.drawString(350, y - 3, "UNID.")
+    c.drawString(450, y - 3, "TOTAL")
+    
+    # 4. ITENS
     c.setFont("Helvetica", 10)
-    y = 700
+    y -= 30
+    total_geral = 0
     for it in itens:
-        c.drawString(50, y, f"{it.get('Item')} - {it.get('Qtd')} {it.get('Unidade')} - R$ {float(it.get('Venda', 0)):.2f}")
+        preco = float(it.get('Venda', 0))
+        qtd = int(it.get('Qtd', 1))
+        total_linha = preco * qtd
+        total_geral += total_linha
+        
+        c.drawString(60, y, str(it.get('Item')))
+        c.drawString(350, y, str(it.get('Unidade')))
+        c.drawString(450, y, f"R$ {total_linha:.2f}")
         y -= 20
+    
+    # 5. TOTAL E ASSINATURA
+    c.line(50, y, 550, y)
+    c.setFont("Helvetica-Bold", 12)
+    c.drawString(400, y - 20, f"TOTAL GERAL: R$ {total_geral:.2f}")
+    
+    c.setFont("Helvetica", 8)
+    c.drawString(100, 100, "__________________________")
+    c.drawString(110, 85, "Performance Serviços")
+    c.drawString(350, 100, "__________________________")
+    c.drawString(370, 85, "Assinatura do Cliente")
+    
     c.save()
 
 # --- NAVEGAÇÃO ---
