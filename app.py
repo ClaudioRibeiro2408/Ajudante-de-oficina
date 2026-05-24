@@ -108,17 +108,23 @@ elif st.session_state.pagina == "Orçamento":
             pdf.set_font("Arial", size=12)
             
             for it in itens_cliente:
-                # Usamos .get() com valores padrão para evitar o KeyError
                 item_nome = it.get('Item', 'N/A')
                 qtd = it.get('Qtd', 0)
                 unid = it.get('Unidade', '')
                 venda = it.get('Venda', 0.0)
-                
                 texto = f"{item_nome} - {qtd} {unid} | R$ {float(venda):.2f}"
                 pdf.cell(200, 10, txt=texto, ln=True)
                 
             pdf.output("orcamento.pdf")
-            st.success("PDF Gerado!")
+            st.success("PDF Gerado com sucesso!")
+            
+            # --- NOVO: VISUALIZADOR ---
+            with open("orcamento.pdf", "rb") as pdf_file:
+                PDFbyte = pdf_file.read()
+            
+            st.download_button(label="📥 Baixar PDF", data=PDFbyte, file_name="orcamento.pdf", mime='application/pdf')
+            
+            # Botão de Envio WhatsApp
             msg = f"Ola, segue o orcamento para {cliente_selecionado}."
             st.link_button("Enviar via WhatsApp", f"https://wa.me/?text={msg}")
 
