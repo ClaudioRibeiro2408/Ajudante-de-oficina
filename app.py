@@ -76,4 +76,39 @@ elif st.session_state.pagina == "Orçamento":
     lista_cli = carregar_dados("clientes.json")
     nomes = [c['Nome'] for c in lista_cli]
     cliente = st.selectbox("Selecione o Cliente", [""] + nomes)
-    with st.form("orc_form",
+    with st.form("orc_form", clear_on_submit=True):
+        peca = st.text_input("Peça/Serviço")
+        venda = st.number_input("Preço de Venda R$", min_value=0.0)
+        submit = st.form_submit_button("Adicionar")
+        if submit:
+            if cliente:
+                dados = carregar_dados("orcamentos.json")
+                dados.append({"Cliente": cliente, "Peça": peca, "Venda": venda})
+                salvar_dados("orcamentos.json", dados)
+                st.rerun()
+            else:
+                st.error("Selecione um cliente primeiro!")
+    lista_orc = carregar_dados("orcamentos.json")
+    if lista_orc: st.table(pd.DataFrame(lista_orc))
+
+elif st.session_state.pagina == "Diagnóstico":
+    st.header("🔧 Diagnóstico Técnico IA")
+    v_diag = st.text_input("Veículo")
+    p_diag = st.text_area("Descreva o sintoma ou erro")
+    if st.button("Analisar com IA"):
+        if v_diag and p_diag:
+            with st.spinner("Consultando..."):
+                resposta = chamar_gemini(f"Diagnóstico para {v_diag}: {p_diag}")
+                st.markdown(f"### Resultado:\n{resposta}")
+
+elif st.session_state.pagina == "Histórico":
+    st.header("📋 Histórico Geral")
+    historico = carregar_dados("orcamentos.json")
+    if historico: st.table(pd.DataFrame(historico))
+    else: st.info("Nenhum histórico encontrado.")
+
+# Botão de retorno global
+if st.session_state.pagina != "Início":
+    if st.button("⬅️ Voltar para o Menu"):
+        st.session_state.pagina = "Início"
+        st.rerun()
