@@ -103,9 +103,14 @@ elif st.session_state.pagina == "Orçamento":
         peca = st.text_input("Qual é o serviço/peça?")
         detalhes = st.text_area("Detalhes (opcional)")
         
+        # ... dentro do with st.form("orc_form", ...):
+        
         col1, col2 = st.columns(2)
-        unidade = col1.text_input("Unidade (ex: un, kg, hora)")
+        # Substituímos o text_input por um selectbox:
+        unidade = col1.selectbox("Unidade de medida", ["unidade", "litros", "kg", "hora"])
         preco = col2.number_input("Preço unitário R$", min_value=0.0, format="%.2f")
+        
+        # ... restante do código
         
         qtd = st.number_input("Quantidade", min_value=1, value=1)
         
