@@ -4,126 +4,48 @@ import os
 import pandas as pd
 import requests
 
-# Configuração da Página
 st.set_page_config(page_title="Oficina Pro", layout="centered")
 
-# --- FUNÇÕES DE APOIO ---
 def carregar_dados(arquivo):
     if not os.path.exists(arquivo): return []
     try:
-        with open(arquivo, "r", encoding="utf-8") as f:
-            return json.load(f)
+        with open(arquivo, "r", encoding="utf-8") as f: return json.load(f)
     except: return []
 
 def salvar_dados(arquivo, dados):
-    with open(arquivo, "w", encoding="utf-8") as f:
-        json.dump(dados, f, ensure_ascii=False, indent=4)
+    with open(arquivo, "w", encoding="utf-8") as f: json.dump(dados, f, ensure_ascii=False, indent=4)
 
-def chamar_gemini(prompt):
-    api_key = st.secrets.get("GEMINI_API_KEY")
-    if not api_key: return "Erro: Chave API não configurada."
-    url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash:generateContent?key={api_key}"
-    payload = {"contents": [{"parts": [{"text": prompt}]}]}
-    try:
-        response = requests.post(url, json=payload)
-        return response.json()['candidates'][0]['content']['parts'][0]['text']
-    except: return "Erro de comunicação com a IA."
-
-# --- NAVEGAÇÃO ---
 if 'pagina' not in st.session_state: st.session_state.pagina = "Início"
 
 st.title("⚙️ Oficina Pro")
 
 c1, c2, c3 = st.columns(3)
-with c1:
-    if st.button("👤 Clientes", use_container_width=True): st.session_state.pagina = "Clientes"
-with c2:
-    if st.button("🔧 Diagnóstico", use_container_width=True): st.session_state.pagina = "Diagnóstico"
-with c3:
-    if st.button("📋 Histórico", use_container_width=True): st.session_state.pagina = "Histórico"
-
-if st.button("➕ Criar novo orçamento", use_container_width=True, type="primary"): st.session_state.pagina = "Orçamento"
-
+if c1.button("👤 Clientes", use_container_width=True): st.session_state.pagina = "Clientes"
+if c2.button("🔧 Diagnóstico", use_container_width=True): st.session_state.pagina = "Diagnóstico"
+if c3.button("📋 Histórico", use_container_width=True): st.session_state.pagina = "Histórico"
+if st.button("➕ Novo Orçamento", use_container_width=True, type="primary"): st.session_state.pagina = "Orçamento"
 st.divider()
 
-# --- PÁGINAS ---
-if st.session_state.pagina == "Clientes":
-    st.header("👤 Cadastro de Cliente")
-    with st.form("cli_form", clear_on_submit=True):
-        col1, col2 = st.columns(2)
-        nome = col1.text_input("Nome do Cliente")
-        telefone = col1.text_input("Telefone")
-        marca = col2.text_input("Marca do Veículo")
-        modelo = col2.text_input("Modelo do Veículo")
-        placa = col2.text_input("Placa")
-        if st.form_submit_button("Salvar Cliente"):
-            if nome:
-                dados = carregar_dados("clientes.json")
-                dados.append({"Nome": nome, "Telefone": telefone, "Marca": marca, "Modelo": modelo, "Placa": placa})
-                salvar_dados("clientes.json", dados)
-                st.success("Cliente salvo!")
-                st.rerun()
+if st.session_state.pagina == "Orçamento":
+    st.header("💰 Novo Orçamento")
     lista_cli = carregar_dados("clientes.json")
-    if lista_cli: st.table(pd.DataFrame(lista_cli))
-elif st.session_state.pagina == "Catálogo":
-    st.header("📦 Cadastro de Peças/Serviços")
-    with st.form("cat_form", clear_on_submit=True):
-        tipo_item = st.radio("Tipo", ["Peça", "Serviço"])
-        nome_item = st.text_input("Nome do Item")
-        preco_item = st.number_input("Preço Sugerido R$", min_value=0.0)
-        if st.form_submit_button("Salvar no Catálogo"):
-            cat = carregar_dados("catalogo.json")
-            cat.append({"Tipo": tipo_item, "Nome": nome_item, "Preço": preco_item})
-            salvar_dados("catalogo.json", cat)
-            st.success("Item salvo!")
-elif st.session_state.pagina == "Orçamento":
-    st.header("Novo Orçamento")
-    
-    # 1. Carrega dados
-    lista_cli = carregar_dados("clientes.json")
-    catalogo = carregar_dados("catalogo.json")
-    
-    # 2. Seleção de Cliente e Busca no Catálogo
     cliente = st.selectbox("Selecione o Cliente", [""] + [c['Nome'] for c in lista_cli])
     
-    # Busca de itens já cadastrados
-    opcoes_cat = [""] + [f"{i['Tipo']} - {i['Nome']} (R$ {i['Preço']})" for i in catalogo]
-    item_selecionado = st.selectbox("Ou escolha do Catálogo", opcoes_cat)
-    
-    # Auto-preenchimento
-    def_desc, def_valor = "", 0.0
-    if item_selecionado and item_selecionado != "":
-        item_data = next((i for i in catalogo if f"{i['Tipo']} - {i['Nome']} (R$ {i['Preço']})" == item_selecionado), None)
-        if item_data:
-            def_desc, def_valor = item_data['Nome'], item_data['Preço']
-
-    # 3. Formulário
-   with st.form("orc_form", clear_on_submit=True):
+    with st.form("orc_form", clear_on_submit=True):
         tipo = st.radio("Tipo", ["Peça", "Serviço"], horizontal=True)
         peca = st.text_input("Qual é o item?")
         detalhes = st.text_area("Detalhes (opcional)")
-        
-        col1, col2 = st.columns(2)
-        unidade = col1.text_input("Unidade (un, kg, hora)")
-        qtd = col2.number_input("Quantidade", min_value=1, value=1)
-        
-        # Seção Custo & Lucro
+        c1, c2 = st.columns(2)
+        unidade = c1.text_input("Unidade (un, kg, hora)")
+        qtd = c2.number_input("Quantidade", min_value=1, value=1)
         st.markdown("---")
         st.subheader("Custo & Lucro")
         c_custo, c_margem = st.columns(2)
         custo_un = c_custo.number_input("Custo unitário (R$)", min_value=0.0)
-        margem_pct = c_margem.number_input("Margem de lucro (%)", min_value=0.0)
-        
-        # Cálculo sugerido
+        margem_pct = c_margem.number_input("Margem (%)", min_value=0.0)
         preco_venda = custo_un * (1 + (margem_pct / 100))
-        st.write(f"**Preço de venda sugerido: R$ {preco_venda:.2f}**")
+        st.write(f"**Sugestão de venda: R$ {preco_venda:.2f}**")
         venda_final = st.number_input("Preço de venda final (R$)", value=float(preco_venda), min_value=0.0)
-        
-        # Outros detalhes
-        with st.expander("Outros detalhes"):
-            marca = st.text_input("Marca")
-            cod_barras = st.text_input("Código de barras")
-        
         salvar_no_cat = st.checkbox("Salvar no meu catálogo")
         
         if st.form_submit_button("Adicionar ao pedido"):
@@ -134,49 +56,15 @@ elif st.session_state.pagina == "Orçamento":
                     "Venda": venda_final, "Qtd": qtd, "Tipo": tipo
                 })
                 salvar_dados("orcamentos.json", dados)
-                
                 if salvar_no_cat:
                     cat = carregar_dados("catalogo.json")
                     cat.append({"Tipo": tipo, "Nome": peca, "Custo": custo_un, "Venda": venda_final})
                     salvar_dados("catalogo.json", cat)
                 st.rerun()
-            else: 
-                st.error("Preencha o cliente e o nome do serviço/peça!")
+            else: st.error("Preencha o cliente e o nome do item!")
 
-    # 4. Exibição da Tabela
     lista_orc = carregar_dados("orcamentos.json")
-    itens_filtrados = [i for i in lista_orc if i['Cliente'] == cliente]
-    if itens_filtrados: 
-        st.table(pd.DataFrame(itens_filtrados))
+    if lista_orc: st.table(pd.DataFrame([i for i in lista_orc if i['Cliente'] == cliente]))
 
-elif st.session_state.pagina == "Diagnóstico":
-    st.header("🔧 Diagnóstico Técnico IA")
-    v_diag = st.text_input("Veículo")
-    p_diag = st.text_area("Descreva o sintoma")
-    if st.button("Analisar com IA"):
-        if v_diag and p_diag:
-            with st.spinner("Consultando..."):
-                st.write(chamar_gemini(f"Diagnóstico para {v_diag}: {p_diag}"))
-
-elif st.session_state.pagina == "Histórico":
-    st.header("💰 Financeiro & Histórico")
-    orcamentos = carregar_dados("orcamentos.json")
-    despesas = carregar_dados("despesas.json")
-    total_vendas = sum(float(item.get("Venda", 0)) for item in orcamentos) if orcamentos else 0.0
-    total_despesas = sum(float(d.get("Valor", 0)) for d in despesas) if despesas else 0.0
-    col_a, col_b = st.columns(2)
-    col_a.metric("Total Faturado", f"R$ {total_vendas:.2f}")
-    col_b.metric("Lucro", f"R$ {total_vendas - total_despesas:.2f}")
-    with st.expander("➕ Lançar Despesa"):
-        with st.form("desp_form", clear_on_submit=True):
-            d_desc = st.text_input("Descrição")
-            d_val = st.number_input("Valor", min_value=0.0)
-            if st.form_submit_button("Salvar"):
-                despesas.append({"Descrição": d_desc, "Valor": d_val})
-                salvar_dados("despesas.json", despesas)
-                st.rerun()
-    st.subheader("Histórico de Orçamentos")
-    if orcamentos: st.table(pd.DataFrame(orcamentos))
-
-if st.session_state.pagina != "Início":
+elif st.session_state.pagina != "Início":
     if st.button("⬅️ Voltar"): st.session_state.pagina = "Início"; st.rerun()
