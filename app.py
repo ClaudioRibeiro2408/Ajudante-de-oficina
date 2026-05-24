@@ -66,24 +66,4 @@ def gerar_pdf(cliente_info, itens_servicos, itens_pecas, total_serv, total_pecas
     
     p.showPage()
     p.save()
-    buffer.seek(0)
-    return buffer
-
-# --- NAVEGAÇÃO FIXA ---
-if 'pagina' not in st.session_state: st.session_state.pagina = "Início"
-
-st.title("⚙️ Oficina Pro")
-c1, c2, c3 = st.columns(3)
-if c1.button("👤 Clientes", use_container_width=True): st.session_state.pagina = "Clientes"
-if c2.button("🔧 Diagnóstico", use_container_width=True): st.session_state.pagina = "Diagnóstico"
-if c3.button("📋 Histórico", use_container_width=True): st.session_state.pagina = "Histórico"
-
-if st.button("➕ Criar novo orçamento", use_container_width=True, type="primary"): 
-    st.session_state.pagina = "Orçamento"
-st.divider()
-
-# --- CONTEÚDO DAS PÁGINAS (Mantendo layout original) ---
-if st.session_state.pagina == "Orçamento":
-    st.header("💰 Novo Orçamento")
-    lista_cli = carregar_dados("clientes.json")
-    cliente = st.selectbox("Selecione o
+    buffer.
