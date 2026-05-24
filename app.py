@@ -99,11 +99,16 @@ elif st.session_state.pagina == "Diagnóstico":
 
 elif st.session_state.pagina == "Histórico":
     st.header("💰 Financeiro & Histórico")
+    
     orcamentos = carregar_dados("orcamentos.json")
     despesas = carregar_dados("despesas.json")
-    total_vendas = sum(float(item.get("Venda", 0)) for item in orcamentos)
-    total_despesas = sum(float(d.get("Valor", 0)) for d in despesas)
+    
+    total_vendas = sum(float(item.get("Venda", 0)) for item in orcamentos) if orcamentos else 0.0
+    total_despesas = sum(float(d.get("Valor", 0)) for d in despesas) if despesas else 0.0
     
     col_a, col_b = st.columns(2)
     col_a.metric("Total Faturado", f"R$ {total_vendas:.2f}")
-    col_
+    col_b.metric("Lucro", f"R$ {total_vendas - total_despesas:.2f}")
+    
+    with st.expander("➕ Lançar Despesa"):
+        with st.form
