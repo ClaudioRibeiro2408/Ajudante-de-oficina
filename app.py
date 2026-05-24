@@ -98,46 +98,47 @@ elif st.session_state.pagina == "Orçamento":
             def_desc, def_valor = item_data['Nome'], item_data['Preço']
 
     # 3. Formulário
-    with st.form("orc_form", clear_on_submit=True):
+   with st.form("orc_form", clear_on_submit=True):
         tipo = st.radio("Tipo", ["Peça", "Serviço"], horizontal=True)
-        peca = st.text_input("Qual é o serviço/peça?")
+        peca = st.text_input("Qual é o item?")
         detalhes = st.text_area("Detalhes (opcional)")
         
-        # ... dentro do with st.form("orc_form", ...):
-        
         col1, col2 = st.columns(2)
-        # Substituímos o text_input por um selectbox:
-        unidade = col1.selectbox("Unidade de medida", ["unidade", "litros", "kg", "hora"])
-        preco = col2.number_input("Preço unitário R$", min_value=0.0, format="%.2f")
+        unidade = col1.text_input("Unidade (un, kg, hora)")
+        qtd = col2.number_input("Quantidade", min_value=1, value=1)
         
-        # ... restante do código
+        # Seção Custo & Lucro
+        st.markdown("---")
+        st.subheader("Custo & Lucro")
+        c_custo, c_margem = st.columns(2)
+        custo_un = c_custo.number_input("Custo unitário (R$)", min_value=0.0)
+        margem_pct = c_margem.number_input("Margem de lucro (%)", min_value=0.0)
         
-        qtd = st.number_input("Quantidade", min_value=1, value=1)
+        # Cálculo sugerido
+        preco_venda = custo_un * (1 + (margem_pct / 100))
+        st.write(f"**Preço de venda sugerido: R$ {preco_venda:.2f}**")
+        venda_final = st.number_input("Preço de venda final (R$)", value=float(preco_venda), min_value=0.0)
         
-        st.write(f"### Valor Total: R$ {preco * qtd:.2f}")
+        # Outros detalhes
+        with st.expander("Outros detalhes"):
+            marca = st.text_input("Marca")
+            cod_barras = st.text_input("Código de barras")
         
-        salvar_no_cat = st.checkbox("Salvar serviço/peça no meu catálogo")
+        salvar_no_cat = st.checkbox("Salvar no meu catálogo")
         
         if st.form_submit_button("Adicionar ao pedido"):
             if cliente and peca:
                 dados = carregar_dados("orcamentos.json")
                 dados.append({
-                    "Cliente": cliente, 
-                    "Peça": peca, 
-                    "Detalhes": detalhes,
-                    "Unidade": unidade,
-                    "Preço": preco,
-                    "Qtd": qtd,
-                    "Total": preco * qtd,
-                    "Tipo": tipo
+                    "Cliente": cliente, "Peça": peca, "Custo": custo_un, 
+                    "Venda": venda_final, "Qtd": qtd, "Tipo": tipo
                 })
                 salvar_dados("orcamentos.json", dados)
                 
                 if salvar_no_cat:
                     cat = carregar_dados("catalogo.json")
-                    cat.append({"Tipo": tipo, "Nome": peca, "Preço": preco, "Unidade": unidade})
+                    cat.append({"Tipo": tipo, "Nome": peca, "Custo": custo_un, "Venda": venda_final})
                     salvar_dados("catalogo.json", cat)
-                
                 st.rerun()
             else: 
                 st.error("Preencha o cliente e o nome do serviço/peça!")
