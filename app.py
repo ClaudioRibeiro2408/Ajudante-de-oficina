@@ -19,19 +19,27 @@ queixa = st.text_area("Descreva o problema:")
 # Botão de ação
 if st.button("Gerar Análise"):
     if veiculo and queixa:
-        # Lógica de diagnóstico simplificada
+        # Normalização dos textos para análise
         q = queixa.lower()
         
-        if "barulho" in q and "freio" in q:
-            resultado = "Possível causa: Pastilhas de freio gastas, discos empenados ou falta de lubrificação no cáliper."
-        elif "falha" in q and "motor" in q:
-            resultado = "Possível causa: Velas de ignição gastas, bobinas com defeito ou bico injetor obstruído."
+        # Lógica de Diagnóstico Aprimorada
+        if "freio" in q or "pastilha" in q or "disco" in q:
+            resultado = f"No {veiculo}, o sistema de freios exige atenção imediata. Verifique desgaste de pastilhas (<3mm) e possíveis vibrações no pedal que indiquem empenamento dos discos."
+            
+        elif "motor" in q or "falha" in q or "velas" in q:
+            resultado = f"Para um {veiculo}, falhas de motor sugerem verificar velas de ignição e bobinas. Se for falha em marcha lenta, limpe o corpo de borboleta."
+            
         elif "aquecendo" in q or "temperatura" in q:
-            resultado = "Possível causa: Nível baixo de aditivo, válvula termostática travada ou ventoinha com defeito."
-        elif "partida" in q or "não liga" in q:
-            resultado = "Possível causa: Bateria descarregada, motor de arranque ou falha no sistema de combustível."
+            resultado = f"Atenção: superaquecimento no {veiculo} pode ser grave. Verifique o nível do aditivo, mangueiras e se a ventoinha arma corretamente."
+            
+        elif "suspensão" in q or "batendo" in q:
+            resultado = f"Sons na suspensão do {veiculo} geralmente indicam buchas de bandeja estouradas, bieletas com folga ou amortecedores vencidos."
+            
+        elif "partida" in q or "bateria" in q:
+            resultado = f"Problema de partida no {veiculo}: teste a voltagem da bateria e verifique o motor de arranque. Se houver giro lento, pode ser mal contato nos bornes."
+            
         else:
-            resultado = "Sintoma genérico. Recomendada inspeção detalhada via scanner automotivo para leitura de falhas (DTCs)."
+            resultado = f"Como o sintoma relatado não é comum para o {veiculo}, recomendo: 1. Escaneamento via OBDII para verificar códigos de erro. 2. Verificação de histórico de manutenções. 3. Teste de rodagem."
         
         # Exibição do resultado
         st.success(f"Análise para {veiculo}:")
