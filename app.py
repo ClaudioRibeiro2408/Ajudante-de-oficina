@@ -46,7 +46,7 @@ if st.button("➕ Criar novo orçamento", use_container_width=True, type="primar
 
 st.divider()
 
-# --- PÁGINAS (Estrutura Mantida) ---
+# --- PÁGINAS ---
 
 if st.session_state.pagina == "Clientes":
     st.header("👤 Cadastro de Cliente")
@@ -75,31 +75,4 @@ elif st.session_state.pagina == "Orçamento":
     with st.form("orc_form", clear_on_submit=True):
         peca = st.text_input("Peça/Serviço")
         venda = st.number_input("Preço R$", min_value=0.0)
-        obs = st.text_area("Observações") # Campo solicitado
-        if st.form_submit_button("Adicionar"):
-            if cliente:
-                dados = carregar_dados("orcamentos.json")
-                dados.append({"Cliente": cliente, "Peça": peca, "Venda": venda, "Obs": obs})
-                salvar_dados("orcamentos.json", dados)
-                st.rerun()
-            else: st.error("Selecione um cliente primeiro!")
-    lista_orc = carregar_dados("orcamentos.json")
-    if lista_orc: st.table(pd.DataFrame([i for i in lista_orc if i['Cliente'] == cliente]))
-
-elif st.session_state.pagina == "Diagnóstico":
-    st.header("🔧 Diagnóstico Técnico IA")
-    v_diag = st.text_input("Veículo")
-    p_diag = st.text_area("Descreva o sintoma")
-    if st.button("Analisar com IA"):
-        if v_diag and p_diag:
-            st.write(chamar_gemini(f"Diagnóstico para {v_diag}: {p_diag}"))
-
-elif st.session_state.pagina == "Histórico":
-    st.header("💰 Financeiro & Histórico")
-    orcamentos = carregar_dados("orcamentos.json")
-    despesas = carregar_dados("despesas.json")
-    total_vendas = sum(item.get("Venda", 0) for item in orcamentos)
-    total_despesas = sum(d.get("Valor", 0) for d in despesas)
-    
-    col_a, col_b = st.columns(2)
-    col_a.metric("Total Faturado", f"R$ {total
+        obs = st.text_area("Observações
