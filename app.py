@@ -12,7 +12,8 @@ btn = st.button("Consultar")
 
 if btn:
     # URL da API v1 (estável)
-    url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key={api_key}"
+    # Altere a variável 'url' para usar gemini-1.0-pro
+    url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.0-pro:generateContent?key={api_key}"
     
     headers = {'Content-Type': 'application/json'}
     data = {
