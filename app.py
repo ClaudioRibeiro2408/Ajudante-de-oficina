@@ -4,14 +4,12 @@ import google.generativeai as genai
 # Configuração da página
 st.set_page_config(page_title="Oficina Pro - Diagnóstico Técnico", layout="wide")
 
-# Inicialização da API
+# Inicialização da API com o modelo estável
 try:
     genai.configure(api_key=st.secrets["GOOGLE_API_KEY"])
-    # Onde estava: model = genai.GenerativeModel('gemini-1.5-flash')
-# Mude para esta linha abaixo:
-model = genai.GenerativeModel('gemini-pro')
+    model = genai.GenerativeModel('gemini-pro')
 except Exception as e:
-    st.error("Erro ao carregar a chave do Secrets. Verifique se o nome no painel Secrets é exatamente 'GOOGLE_API_KEY'.")
+    st.error(f"Erro na configuração da API: {e}")
     st.stop()
 
 st.title("⚙️ Oficina Pro - Diagnóstico Técnico")
@@ -40,6 +38,6 @@ with col2:
                     st.markdown("### Resultado:")
                     st.write(response.text)
                 except Exception as e:
-                    st.error(f"Erro ao consultar: {e}")
+                    st.error(f"Erro ao consultar a IA: {e}")
         else:
             st.warning("Preencha o DTC e o modelo.")
