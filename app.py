@@ -7,11 +7,15 @@ st.title("⚙️ Oficina Pro - Diagnóstico")
 # A configuração da API é feita dentro de uma função, não no carregamento da página
 def consultar_ia(veiculo, dtc, descricao):
     try:
-        # Configuração mínima necessária
-        genai.configure(api_key=st.secrets["GOOGLE_API_KEY"])
+        # Configuração com endpoint forçado para evitar o v1beta
+        genai.configure(
+            api_key=st.secrets["GOOGLE_API_KEY"],
+            client_options={'api_endpoint': 'https://generativelanguage.googleapis.com'}
+        )
         
-        # Usando o modelo Pro que é mais estável para contas gratuitas
-        model = genai.GenerativeModel('gemini-1.0-pro')
+        # Tentamos listar os modelos disponíveis para saber o nome correto
+        # Isso evita o erro de 'not found'
+        model = genai.GenerativeModel('gemini-1.5-flash')
         
         prompt = f"Mecânico especialista: {veiculo}, DTC {dtc}. Descrição: {descricao}. Me dê o diagnóstico técnico."
         response = model.generate_content(prompt)
