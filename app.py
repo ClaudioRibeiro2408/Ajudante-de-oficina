@@ -5,11 +5,19 @@ import google.generativeai as genai
 st.set_page_config(page_title="Oficina Pro - Diagnóstico Técnico", layout="wide")
 
 # Inicialização da API com o modelo estável
+# Inicialização da API automática (busca o modelo disponível na sua conta)
 try:
     genai.configure(api_key=st.secrets["GOOGLE_API_KEY"])
-    model = genai.GenerativeModel('gemini-pro')
+    
+    # Esta linha busca o primeiro modelo disponível que suporte geração de conteúdo
+    models = [m for m in genai.list_models() if "generateContent" in m.supported_methods]
+    # Pega o primeiro da lista que for do tipo 'gemini'
+    model_name = next((m.name for m in models if "gemini" in m.name), "gemini-1.5-flash")
+    
+    model = genai.GenerativeModel(model_name)
+    st.sidebar.write(f"Modelo ativo: {model_name}") # Para você saber qual ele escolheu
 except Exception as e:
-    st.error(f"Erro na configuração da API: {e}")
+    st.error(f"Erro ao conectar na API: {e}")
     st.stop()
 
 st.title("⚙️ Oficina Pro - Diagnóstico Técnico")
