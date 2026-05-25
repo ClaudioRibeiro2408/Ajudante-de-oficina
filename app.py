@@ -1,32 +1,35 @@
 import streamlit as st
-import google.generativeai as genai
+import requests
+import json
 
 st.set_page_config(page_title="Oficina Pro", layout="wide")
-st.title("⚙️ Oficina Pro")
+st.title("⚙️ Oficina Pro - Modo Conexão Direta")
 
-# Configuração da chave
-genai.configure(api_key=st.secrets["GOOGLE_API_KEY"])
-
-# Usando um alias de modelo genérico que o próprio SDK do Google resolve
-model_name = 'gemini-1.5-flash' 
-
+api_key = st.secrets["GOOGLE_API_KEY"]
 dtc = st.text_input("DTC:")
 veiculo = st.text_input("Veículo:")
 btn = st.button("Consultar")
 
 if btn:
+    # URL da API v1 (estável)
+    url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key={api_key}"
+    
+    headers = {'Content-Type': 'application/json'}
+    data = {
+        "contents": [{
+            "parts": [{"text": f"Atue como mecânico. Analise o {veiculo} com erro {dtc}. Forneça causas, esquema e dicas de osciloscópio."}]
+        }]
+    }
+    
     try:
-        # Tenta instanciar o modelo
-        model = genai.GenerativeModel(model_name)
-        
-        # Faz a chamada
-        response = model.generate_content(f"Como mecânico, analise o {veiculo} com código {dtc}. Seja técnico e preciso.")
-        st.markdown(response.text)
-        
+        with st.spinner("Consultando servidor..."):
+            response = requests.post(url, headers=headers, json=data)
+            result = response.json()
+            
+            if "candidates" in result:
+                texto = result["candidates"][0]["content"]["parts"][0]["text"]
+                st.markdown(texto)
+            else:
+                st.error(f"Erro do Servidor: {result}")
     except Exception as e:
-        st.error(f"Erro técnico: {e}")
-        st.write("---")
-        st.write("Para resolver, verifique:")
-        st.write("1. Sua conta em https://aistudio.google.com/ precisa ter os termos de uso aceitos.")
-        st.write("2. Verifique se sua conta não está em uma região com restrições.")
-        
+        st.error(f"Erro na conexão: {e}")
