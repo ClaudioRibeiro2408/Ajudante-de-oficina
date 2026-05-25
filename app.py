@@ -1,28 +1,43 @@
 import streamlit as st
-import sys
+import google.generativeai as genai
 
-st.set_page_config(page_title="Oficina Pro - Debug", layout="centered")
+# Configuração da página
+st.set_page_config(page_title="Oficina Pro - Diagnóstico Técnico", layout="wide")
 
-st.title("⚙️ Oficina Pro - Modo de Depuração")
-
-st.write("Verificando ambiente...")
-
+# Inicialização da API
 try:
-    # Verificação simples de bibliotecas
-    import google.generativeai
-    st.success("✅ Biblioteca google-generativeai instalada corretamente.")
-except ImportError:
-    st.error("❌ Erro: Biblioteca 'google-generativeai' não instalada. Adicione ao requirements.txt!")
-
-try:
-    # Teste de Secrets sem travar o app
-    if "GOOGLE_API_KEY" in st.secrets:
-        st.success("✅ Chave GOOGLE_API_KEY encontrada no Secrets.")
-    else:
-        st.error("❌ Erro: GOOGLE_API_KEY não encontrada no painel Secrets.")
-        st.write("Dica: Vá em 'Manage App' -> 'Settings' -> 'Secrets' e cole: GOOGLE_API_KEY = 'sua_chave'")
+    genai.configure(api_key=st.secrets["GOOGLE_API_KEY"])
+    model = genai.GenerativeModel('gemini-1.5-flash')
 except Exception as e:
-    st.error(f"Erro inesperado ao acessar secrets: {e}")
+    st.error("Erro ao carregar a chave do Secrets. Verifique se o nome no painel Secrets é exatamente 'GOOGLE_API_KEY'.")
+    st.stop()
 
-st.divider()
-st.write("Se você vê este texto, o ambiente está OK. O problema anterior era o carregamento da chave.")
+st.title("⚙️ Oficina Pro - Diagnóstico Técnico")
+
+# Interface
+col1, col2 = st.columns([1, 2])
+
+with col1:
+    dtc = st.text_input("Código de Falha (DTC) Ex: P0300:")
+    veiculo = st.text_input("Modelo e Motorização:")
+    tarefa = st.selectbox("O que você precisa?", 
+                          ["Diagnóstico Completo", 
+                           "Causas Prováveis", 
+                           "Esquema Elétrico (Descrição)", 
+                           "Dicas de Osciloscópio (Sinais e Conexão)"])
+    
+    btn_analisar = st.button("Consultar Base Técnica")
+
+with col2:
+    if btn_analisar:
+        if dtc and veiculo:
+            prompt = f"Como mecânico especialista, analise o {veiculo} com código {dtc}. Objetivo: {tarefa}. Seja técnico e preciso."
+            with st.spinner("Consultando manuais..."):
+                try:
+                    response = model.generate_content(prompt)
+                    st.markdown("### Resultado:")
+                    st.write(response.text)
+                except Exception as e:
+                    st.error(f"Erro ao consultar: {e}")
+        else:
+            st.warning("Preencha o DTC e o modelo.")
