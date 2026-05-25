@@ -13,7 +13,8 @@ if btn:
     try:
         import google.generativeai as genai
         genai.configure(api_key=st.secrets["GOOGLE_API_KEY"])
-        model = genai.GenerativeModel('gemini-1.5-flash')
+        # Mude a linha do 'model =' para esta:
+model = genai.GenerativeModel('gemini-1.0-pro')
         response = model.generate_content(f"Analise o {veiculo} com código {dtc}.")
         st.write(response.text)
     except Exception as e:
