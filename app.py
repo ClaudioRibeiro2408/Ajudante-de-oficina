@@ -7,21 +7,21 @@ st.title("⚙️ Oficina Pro - Diagnóstico")
 # A configuração da API é feita dentro de uma função, não no carregamento da página
 def consultar_ia(veiculo, dtc, descricao):
     try:
-        # Configuração com endpoint forçado para evitar o v1beta
+        # Aumentamos o tempo de espera e mantemos a conexão limpa
         genai.configure(
             api_key=st.secrets["GOOGLE_API_KEY"],
             client_options={'api_endpoint': 'https://generativelanguage.googleapis.com'}
         )
         
-        # Tentamos listar os modelos disponíveis para saber o nome correto
-        # Isso evita o erro de 'not found'
         model = genai.GenerativeModel('gemini-1.5-flash')
         
-        prompt = f"Mecânico especialista: {veiculo}, DTC {dtc}. Descrição: {descricao}. Me dê o diagnóstico técnico."
-        response = model.generate_content(prompt)
+        prompt = f"Mecânico especialista. Veículo: {veiculo}. DTC: {dtc}. Problema: {descricao}. Me dê o diagnóstico."
+        
+        # Chamada com timeout explícito
+        response = model.generate_content(prompt, request_options={"timeout": 600})
         return response.text
     except Exception as e:
-        return f"Erro técnico: {str(e)}"
+        return f"Falha na resposta: {str(e)}"
 
 # Interface que sempre carrega
 veiculo = st.text_input("Veículo:")
