@@ -1,21 +1,32 @@
 import streamlit as st
+import google.generativeai as genai
 
 st.set_page_config(page_title="Oficina Pro", layout="wide")
-st.title("⚙️ Oficina Pro - Diagnóstico Técnico")
+st.title("⚙️ Oficina Pro - Diagnóstico")
 
-# Interface básica sem conexão inicial
+# Campos de entrada
 dtc = st.text_input("Código de Falha (DTC):")
 veiculo = st.text_input("Modelo:")
+tarefa = st.selectbox("Objetivo:", ["Diagnóstico", "Causas", "Esquema", "Osciloscópio"])
 btn = st.button("Consultar Base Técnica")
 
 if btn:
-    st.write("Tentando conectar à API...")
-    try:
-        import google.generativeai as genai
-        genai.configure(api_key=st.secrets["GOOGLE_API_KEY"])
-        # Mude a linha do 'model =' para esta:
-model = genai.GenerativeModel('gemini-1.0-pro')
-        response = model.generate_content(f"Analise o {veiculo} com código {dtc}.")
-        st.write(response.text)
-    except Exception as e:
-        st.error(f"Erro na conexão: {e}")
+    if not dtc or not veiculo:
+        st.warning("Preencha o DTC e o Veículo.")
+    else:
+        try:
+            # Configuração da chave
+            genai.configure(api_key=st.secrets["GOOGLE_API_KEY"])
+            
+            # Usando a versão mais robusta disponível
+            model = genai.GenerativeModel('gemini-pro')
+            
+            with st.spinner("Consultando..."):
+                prompt = f"Analise o {veiculo} com erro {dtc}. Tarefa: {tarefa}. Seja técnico."
+                response = model.generate_content(prompt)
+                st.markdown("### Resultado:")
+                st.write(response.text)
+                
+        except Exception as e:
+            st.error(f"Erro no sistema: {e}")
+            st.info("Dica: Verifique se sua API Key no Google AI Studio está ativa e se você aceitou os termos de uso recentes.")
