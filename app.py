@@ -7,7 +7,9 @@ st.set_page_config(page_title="Oficina Pro - Diagnóstico Técnico", layout="wid
 # Inicialização da API
 try:
     genai.configure(api_key=st.secrets["GOOGLE_API_KEY"])
-    model = genai.GenerativeModel('gemini-1.5-flash')
+    # Onde estava: model = genai.GenerativeModel('gemini-1.5-flash')
+# Mude para esta linha abaixo:
+model = genai.GenerativeModel('gemini-pro')
 except Exception as e:
     st.error("Erro ao carregar a chave do Secrets. Verifique se o nome no painel Secrets é exatamente 'GOOGLE_API_KEY'.")
     st.stop()
