@@ -1,34 +1,23 @@
 import streamlit as st
 import google.generativeai as genai
 
-st.set_page_config(page_title="Oficina Pro", layout="centered")
-st.title("⚙️ Oficina Pro - Diagnóstico")
+st.title("Oficina Pro - Diagnóstico")
 
-# A configuração da API é feita dentro de uma função, não no carregamento da página
-def consultar_ia(veiculo, dtc, descricao):
-    try:
-        # Aumentamos o tempo de espera e mantemos a conexão limpa
-        genai.configure(
-            api_key=st.secrets["GOOGLE_API_KEY"],
-            client_options={'api_endpoint': 'https://generativelanguage.googleapis.com'}
-        )
-        
-        model = genai.GenerativeModel('gemini-1.5-flash')
-        
-        prompt = f"Mecânico especialista. Veículo: {veiculo}. DTC: {dtc}. Problema: {descricao}. Me dê o diagnóstico."
-        
-        # Chamada com timeout explícito
-        response = model.generate_content(prompt, request_options={"timeout": 600})
-        return response.text
-    except Exception as e:
-        return f"Falha na resposta: {str(e)}"
+# Configuração minimalista
+api_key = st.secrets["GOOGLE_API_KEY"]
+genai.configure(api_key=api_key)
+model = genai.GenerativeModel('gemini-1.5-flash')
 
-# Interface que sempre carrega
-veiculo = st.text_input("Veículo:")
-dtc = st.text_input("DTC:")
-descricao = st.text_area("Descrição:")
+veiculo = st.text_input("Veículo:", value="Onix 1.4 2018")
+dtc = st.text_input("DTC:", value="P0420")
+descricao = st.text_area("Descrição:", value="Luz da injeção acesa")
 
 if st.button("Consultar"):
-    with st.spinner("Conectando..."):
-        resultado = consultar_ia(veiculo, dtc, descricao)
-        st.write(resultado)
+    try:
+        with st.spinner("Analisando..."):
+            prompt = f"Diagnostique o falha {dtc} no {veiculo}. Descrição: {descricao}. Seja técnico e direto."
+            # Chamada simples e direta
+            response = model.generate_content(prompt)
+            st.write(response.text)
+    except Exception as e:
+        st.error(f"Erro: {e}")
